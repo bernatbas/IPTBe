@@ -1,0 +1,16 @@
+# ─── Credencials del proveïdor. MAI al control de versions ───
+.env
+.env.*
+
+# Llistes descarregades: porten usuari i contrasenya a CADA línia
+*.m3u
+*.m3u8
+
+# ─── Dades generades: catàleg, guia, favorits i caràtules ───
+cache/
+
+# ─── Sistema ───
+.DS_Store
+__pycache__/
+*.pyc
+*.log
