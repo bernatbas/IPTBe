@@ -234,6 +234,61 @@ function toast(msg, bad = false) {
   clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, bad ? 6000 : 3200);
 }
 
+// Diàleg modal. A diferència del toast, no marxa sol: es queda fins que el tanques.
+// Reservat per als errors que impedeixen fer el que l'usuari acabava de demanar.
+let modalEsc = null;
+function closeModal() {
+  document.getElementById('modal')?.remove();
+  if (modalEsc) { document.removeEventListener('keydown', modalEsc); modalEsc = null; }
+}
+function modal(title, ...body) {
+  closeModal();
+  const card = el('div', { class: 'modal-card', role: 'dialog', 'aria-modal': 'true',
+                           'aria-label': title });
+  const back = el('div', { class: 'modal', id: 'modal',
+    onclick: e => { if (e.target === back) closeModal(); } }, card);
+  const acts = el('div', { class: 'modal-acts' });
+  card.append(el('h3', { class: 'serif', text: title }),
+              el('div', { class: 'modal-body' }, ...body), acts);
+  modalEsc = e => { if (e.key === 'Escape') closeModal(); };
+  document.addEventListener('keydown', modalEsc);
+  document.body.append(back);
+  return { acts, close: closeModal };
+}
+
+// Si algú clica per reproduir i no hi ha VLC, no en tenim prou amb avisar-lo:
+// li hem de dir exactament què baixar i on posar-ho.
+function noVlcModal() {
+  const m = modal('Et falta el VLC',
+    el('p', { text: "IPTBe no reprodueix el vídeo ell mateix: el passa al VLC, que és qui sap "
+                  + "llegir els canals i les pel·lícules del teu proveïdor. Ara mateix no el "
+                  + "trobo instal·lat en aquest Mac." }),
+    el('div', { class: 'modal-steps' },
+      el('div', {}, el('b', { text: '1' }), el('span', { html:
+        'Descarrega el VLC de <a href="https://www.videolan.org/vlc/" target="_blank" '
+        + 'rel="noopener">videolan.org/vlc</a>. És gratuït i de codi obert.' })),
+      el('div', {}, el('b', { text: '2' }), el('span', { html:
+        'Obre el fitxer <code>.dmg</code> i arrossega el VLC a la carpeta <b>Aplicacions</b>.' })),
+      el('div', {}, el('b', { text: '3' }), el('span', { html:
+        'Ha de quedar exactament a <code>/Applications/VLC.app</code>. Si el deixes a Descàrregues '
+        + 'o dins una subcarpeta, no el trobaré.' }))));
+
+  const warn = el('span', { class: 'modal-note', hidden: true,
+    text: 'Segueixo sense trobar-lo a /Applications.' });
+  const later = el('button', { class: 'btn btn-s', text: 'Ara no', onclick: m.close });
+  const again = el('button', { class: 'btn btn-p' });
+  const label = () => { again.textContent = ''; again.append(svg('refr', 15), "Ja l'he instal·lat"); };
+  label();
+  again.onclick = async () => {
+    again.disabled = true; again.textContent = 'Comprovant…'; warn.hidden = true;
+    try { S.status = await api('/api/status', { timeout: 8000 }); } catch { /* ja ho dirà el banner */ }
+    again.disabled = false; label();
+    if (S.status?.vlc) { m.close(); toast('Perfecte, ja trobo el VLC. Torna-ho a provar.'); }
+    else warn.hidden = false;
+  };
+  m.acts.append(warn, later, again);
+}
+
 // ───────────────────────── dades ─────────────────────────
 
 async function ensureCatalog(kind, refresh = false) {
@@ -264,7 +319,10 @@ async function play(kind, id, label, ext) {
       body: { kind, id, label, ext: ext || 'mkv' } });
     S.now = r.now; renderNow();
     toast(`Reproduint «${label}» al VLC`);
-  } catch (e) { toast(e.msg, true); }
+  } catch (e) {
+    if (e.kind === 'no_vlc') noVlcModal();
+    else toast(e.msg, true);
+  }
 }
 async function stopPlay() {
   try { const r = await api('/api/stop', { method: 'POST', timeout: 15000 });
