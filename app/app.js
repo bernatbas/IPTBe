@@ -367,8 +367,6 @@ function renderNow() {
     el('span', { class: 'dot' }),
     el('span', { class: 'now-lbl', text: S.now.kind === 'live' ? 'EN DIRECTE' : 'REPRODUINT' }),
     el('span', { class: 'now-t', text: S.now.label }),
-    el('span', { class: 'now-note', style: 'margin-left:auto',
-      text: '1 de 1 connexions en ús' }),
     stop);
 }
 
