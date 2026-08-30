@@ -432,7 +432,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 vlc_play(url, b.get("label") or "", kind, ident)
                 return self._send({"ok": True, "now": _now})
             if p == "/api/stop":
-                vlc_quit()
                 return self._send({"ok": True, "now": _now})
             if p == "/api/prefs":
                 if "favorites" in b: _store_put("favorites", b["favorites"])

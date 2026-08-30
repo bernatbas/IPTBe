@@ -271,7 +271,7 @@ async function stopPlay() {
   catch (e) { toast(e.msg, true); }
 }
 async function quitApp() {
-  if (!confirm('Vols aturar IPTBe? Es tancaran el servidor i el VLC.')) return;
+  if (!confirm('Vols aturar IPTBe? El servidor es tancarà. El VLC continuarà obert.')) return;
   try { await api('/api/quit', { method: 'POST', timeout: 8000 }); } catch {}
   document.body.innerHTML =
     '<div class="pane"><div class="panebox">' +
