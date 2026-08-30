@@ -1,6 +1,7 @@
 # ─── Credencials del proveïdor. MAI al control de versions ───
 .env
 .env.*
+CLAUDE.md
 
 # Llistes descarregades: porten usuari i contrasenya a CADA línia
 *.m3u

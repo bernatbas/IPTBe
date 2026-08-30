@@ -118,7 +118,6 @@ Portar-ho a Linux o Windows vol dir canviar tres línies de `server.py`, però n
 |---|---|---|
 | `.env` | Servidor, usuari i contrasenya | **No.** Ignorat, amb permisos `600` |
 | `cache/` | Catàleg, guia, favorits, caràtules | **No.** Es regenera sol |
-| `*.m3u` | Llistes descarregades (porten la contrasenya a cada línia) | **No.** Ignorat |
 
 El catàleg es refresca automàticament un cop al mes i la guia cada mitja hora. El botó
 **Actualitzar** de cada secció força una descàrrega nova quan la vulguis.
