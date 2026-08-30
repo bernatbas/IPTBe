@@ -124,8 +124,9 @@ function toggleFav(k, id) {
 function favCount() {
   return Object.values(S.prefs.favorites).reduce((a, o) => a + Object.keys(o).length, 0);
 }
-function renderFavCount() {
-  const n = favCount(), node = document.getElementById('favct');
+function renderFavCount(node) {
+  node = node || document.getElementById('favct');
+  const n = favCount();
   if (node) node.textContent = n ? fmt(n) : '';
 }
 
@@ -325,10 +326,10 @@ function shell() {
   const nav2 = el('nav', { class: 'nav' });
   const bf = el('button', { class: 'nv' + (S.view === 'favs' ? ' on' : ''), onclick: () => go('favs') });
   // El comptador existeix sempre (encara que buit) perquè es pugui refrescar a l'instant.
-  bf.append(svg('star', 17), el('span', { text: 'Favorits' }),
-            el('span', { class: 'ct tnum', id: 'favct' }));
+  const favct = el('span', { class: 'ct tnum', id: 'favct' });
+  bf.append(svg('star', 17), el('span', { text: 'Favorits' }), favct);
   nav2.append(bf);
-  renderFavCount();
+  renderFavCount(favct);
   side.append(nav2);
 
   const foot = el('div', { class: 'side-foot' });
