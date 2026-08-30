@@ -74,7 +74,8 @@ bones, quan et caduca el compte i quantes connexions simultànies tens.
 
 Qualsevol de les tres, totes deixen l'ordinador net:
 
-- El botó **Aturar IPTBe** al menú lateral — tanca el servidor i el VLC a l'instant.
+- El botó **Aturar IPTBe** al menú lateral — tanca el servidor a l'instant. Si tens el VLC
+  reproduint alguna cosa, continua: aturar IPTBe no t'interromp el que estàs veient.
 - **Tancar la pestanya** i oblidar-se'n — es tanca sol al cap de 90 segons.
 - **Ctrl+C** a la finestra de Terminal.
 

@@ -432,13 +432,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 vlc_play(url, b.get("label") or "", kind, ident)
                 return self._send({"ok": True, "now": _now})
             if p == "/api/stop":
+                vlc_quit()          # aturar la reproducció sí que tanca el VLC
                 return self._send({"ok": True, "now": _now})
             if p == "/api/prefs":
                 if "favorites" in b: _store_put("favorites", b["favorites"])
                 if "progress"  in b: _store_put("progress",  b["progress"])
                 return self._send({"ok": True})
             if p == "/api/quit":
-                vlc_quit(); shutdown()
+                shutdown()          # el VLC es queda com estigui: potser hi estàs veient alguna cosa
                 return self._send({"ok": True})
             self._send({"error": "Ruta desconeguda."}, 404)
         except Exception as e:
