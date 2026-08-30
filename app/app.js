@@ -421,11 +421,7 @@ async function vHome(main) {
       el('div', { class: 'hhead' },
         el('span', { class: 'sec live', text: 'ESPORTS ARA' }),
         el('span', { style: 'font-size:11.5px;color:var(--ink4)',
-          text: `${sports.length} ${sports.length === 1 ? 'partit en joc' : 'partits en joc'}` }),
-        el('button', { class: 'chip', style: 'margin-left:auto',
-          onclick: () => { S.pick.live = (S.cat.live.cats.find(c => /DEPORTES ESPAÑA/i.test(c.n))
-            || S.cat.live.cats[0]).id; go('live'); },
-          text: 'Tots els esports' })), sg));
+          text: `${sports.length} ${sports.length === 1 ? 'partit en joc' : 'partits en joc'}` })), sg));
   }
 
   // Continuar veient
