@@ -415,10 +415,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     return self._send({"error": "Usuari o contrasenya incorrectes.",
                                        "kind": "auth"}, 400)
                 exp = info.get("exp_date")
+                # Epoch cru: la data la formata el navegador, en l'idioma que hi hagi triat.
                 return self._send({"ok": True, "server": s,
                                    "status": info.get("status"),
-                                   "expires": (time.strftime("%d/%m/%Y", time.localtime(int(exp)))
-                                               if str(exp or "").isdigit() else ""),
+                                   "expires": int(exp) if str(exp or "").isdigit() else None,
                                    "max_connections": info.get("max_connections") or "?"})
             if p == "/api/config":
                 s = (b.get("server") or "").strip().rstrip("/")

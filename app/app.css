@@ -335,3 +335,15 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 .hsrch input:focus{outline:none}
 .hsrch svg{color:var(--ink4);flex-shrink:0}
 .searching .cattab:not(.on){opacity:.45}
+
+/* Selector d'idioma. Al peu del menú lateral i a la pantalla de credencials. */
+.langpick{display:flex;align-items:center;gap:9px;position:relative;
+  padding:7px 10px;border-radius:6px;color:var(--ink3)}
+.langpick:hover{background:var(--hover);color:var(--ink2)}
+.langpick select{appearance:none;-webkit-appearance:none;border:0;background:none;
+  font:inherit;font-size:13px;color:inherit;cursor:pointer;padding:0;flex:1;
+  outline-offset:3px}
+.langpick > span:last-child{pointer-events:none;opacity:.7}
+.cfg-lang{margin-top:22px;max-width:200px}
+.cfg-lang .langpick{padding-left:0}
+.cfg-lang .langpick:hover{background:none}

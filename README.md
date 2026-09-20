@@ -91,6 +91,10 @@ Qualsevol de les tres, totes deixen l'ordinador net:
   Les sèries surten agrupades per temporada i episodi.
 - **Cerca** general i dins de cada secció, insensible a majúscules i accents.
 - **Favorits** i seguiment d'episodis vistos, desats al teu ordinador.
+- **Català i castellà**: el primer cop agafa l'idioma del teu navegador; si no és cap
+  dels dos, es queda en català. El pots canviar quan vulguis des del menú lateral.
+  Es tradueix la interfície: els noms dels canals i els títols venen del proveïdor i
+  arriben tal com ell els envia.
 
 ---
 
@@ -134,11 +138,14 @@ El catàleg es refresca automàticament un cop al mes i la guia cada mitja hora.
 ```
 iptbe.command      llançador de doble clic
 server.py          servidor local: proveïdor, memòria cau, traspàs al VLC
-app/               interfície (HTML, CSS i JavaScript sense cap framework)
+app/index.html     esquelet
+app/app.js         tota la interfície
+app/app.css        estils
+app/i18n.js        textos en català i castellà
 cache/             dades descarregades (generat, ignorat)
 ```
 
-Uns 1.400 línies en total. Sense build, sense empaquetador, sense dependències: edites un
+Uns 2.000 línies en total. Sense build, sense empaquetador, sense dependències: edites un
 fitxer, recarregues el navegador i ja ho veus.
 
 IPTBe parla amb el proveïdor pel protocol **Xtream Codes** (`player_api.php` per al

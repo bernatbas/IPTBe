@@ -18,11 +18,11 @@ const el = (tag, attrs = {}, ...kids) => {
   for (const k of kids.flat()) if (k != null && k !== false) n.append(k);
   return n;
 };
-const fmt = n => (n || 0).toLocaleString('ca-ES');
+const fmt = n => (n || 0).toLocaleString(locale());
 const norm = s => (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 function debounce(fn, ms) {
-  let t = null;
-  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+  let timer = null;
+  return (...a) => { clearTimeout(timer); timer = setTimeout(() => fn(...a), ms); };
 }
 // Camp de cerca per a una secció. Filtra sobre les dades ja carregades, i redibuixa
 // només la llista de resultats perquè el cursor no salti mentre escrius.
@@ -61,6 +61,7 @@ const ICON = {
   user:'<circle cx="10" cy="7" r="3.2"/><path d="M4 16.6c0-2.9 2.7-4.6 6-4.6s6 1.7 6 4.6"/>',
   power:'<path d="M10 3v7"/><path d="M14.9 5.6a6.8 6.8 0 1 1-9.8 0"/>',
   warn:'<path d="M10 3.4 18 16.6H2z"/><path d="M10 8.4v3.4M10 14.2h.01"/>',
+  globe:'<circle cx="10" cy="10" r="7.2"/><path d="M2.8 10h14.4"/><ellipse cx="10" cy="10" rx="3.1" ry="7.2"/>',
 };
 function ic(name, sz = 18, sw = 1.6, fill = 'none') {
   return `<svg width="${sz}" height="${sz}" viewBox="0 0 20 20" fill="${fill}" stroke="currentColor"
@@ -76,10 +77,15 @@ const svg = (name, sz, sw, fill) => {
 
 // ───────────────────────────── capa de xarxa ─────────────────────────────
 
+// msg pot ser null: aleshores el text surt del codi d'error, ja traduït. Passar-hi
+// text només té sentit quan porta dades que el diccionari no pot saber (un temps, per exemple).
 function appErr(msg, kind = 'error', detail = '') {
-  const e = new Error(msg); e.__app = true; e.msg = msg; e.kind = kind; e.detail = detail;
+  const txt = msg || errMsg(kind);
+  const e = new Error(txt); e.__app = true; e.msg = txt; e.kind = kind; e.detail = detail;
   return e;
 }
+// Un codi que no tinguem al diccionari cau al missatge genèric en comptes d'ensenyar la clau.
+const errMsg = kind => t(STR.ca[`err.m.${kind}`] !== undefined ? `err.m.${kind}` : 'err.m.generic');
 
 async function api(path, { method = 'GET', body, timeout = 30000 } = {}) {
   const ctl = new AbortController();
@@ -92,16 +98,17 @@ async function api(path, { method = 'GET', body, timeout = 30000 } = {}) {
     });
     const txt = await r.text();
     let j = {};
-    if (txt) { try { j = JSON.parse(txt); } catch { throw appErr('El servidor local ha respost una cosa il·legible.', 'malformed', txt.slice(0, 200)); } }
-    if (!r.ok) throw appErr(j.error || `Error ${r.status}`, j.kind || 'error', j.detail || '');
+    if (txt) { try { j = JSON.parse(txt); } catch { throw appErr(t('err.m.illegible'), 'malformed', txt.slice(0, 200)); } }
+    // El servidor envia la prosa en català per als logs; el text que veu l'usuari surt
+    // sempre del codi (j.kind), que sí que està traduït.
+    if (!r.ok) throw appErr(null, j.kind || 'error', j.detail || j.error || '');
     return j;
   } catch (e) {
     if (e.__app) throw e;
     if (e.name === 'AbortError')
-      throw appErr(`Ha trigat més de ${Math.round(timeout / 1000)} segons i he aturat l'espera.`, 'timeout',
-                   'Pot ser que el teu proveïdor vagi molt lent ara mateix.');
-    if (!navigator.onLine) throw appErr('No tens connexió a internet.', 'offline', '');
-    throw appErr("No he pogut parlar amb el servidor local. Potser s'ha aturat.", 'local', String(e));
+      throw appErr(t('err.m.wait', Math.round(timeout / 1000)), 'timeout', t('err.m.wait.detail'));
+    if (!navigator.onLine) throw appErr(null, 'offline', '');
+    throw appErr(null, 'local', String(e));
   } finally { clearTimeout(timer); }
 }
 
@@ -141,7 +148,7 @@ function savePrefs() {
         return;
       } catch (e) {
         if (intent === 0) { await new Promise(r => setTimeout(r, 1200)); continue; }
-        setOffline(true, 'Els favorits que has marcat NO s\'han desat.');
+        setOffline(true, t('off.favs'));
       }
     }
   }, 400);
@@ -149,7 +156,8 @@ function savePrefs() {
 
 // ───────────────────────── panells d'estat ─────────────────────────
 
-function loadingPane(host, msg = 'Carregant…') {
+function loadingPane(host, msg) {
+  msg = msg || t('load.default');
   const p = el('div', { class: 'pane' },
     el('div', { class: 'panebox' },
       el('div', { class: 'spin' }),
@@ -157,45 +165,34 @@ function loadingPane(host, msg = 'Carregant…') {
       el('p', { class: 'slow', hidden: true })));
   host.append(p);
   const slow = p.querySelector('.slow');
-  const t1 = setTimeout(() => { slow.hidden = false; slow.textContent = 'Està trigant més del normal. Continuo esperant…'; }, 6000);
-  const t2 = setTimeout(() => { slow.textContent = 'El teu proveïdor va molt lent avui. Encara hi som.'; }, 15000);
+  const t1 = setTimeout(() => { slow.hidden = false; slow.textContent = t('load.slow1'); }, 6000);
+  const t2 = setTimeout(() => { slow.textContent = t('load.slow2'); }, 15000);
   return { done() { clearTimeout(t1); clearTimeout(t2); p.remove(); } };
 }
 
-const ERR_TITLE = {
-  timeout: 'Massa lent', offline: 'Sense connexió', auth: 'Credencials rebutjades',
-  network: 'No hi arribo', dns: 'Adreça no trobada', http: 'El proveïdor ha fallat', malformed: 'Resposta estranya',
-  local: 'Servidor local aturat', no_vlc: 'No trobo el VLC', unconfigured: 'Falta configurar',
-};
-const ERR_HELP = {
-  timeout: "Prova-ho de nou d'aquí un moment. Si passa sempre, el servidor del teu proveïdor deu estar saturat.",
-  offline: 'Comprova el wifi i torna-ho a provar.',
-  dns: "Sol ser una errada a l'adreça del servidor. Revisa-la a Configuració.",
-  network: 'Revisa la connexió i que l\'adreça del servidor a Configuració sigui correcta.',
-  auth: 'Ves a Configuració i torna a escriure usuari i contrasenya.',
-  http: 'És un problema del seu costat, no del teu. Torna-ho a provar més tard.',
-  local: 'Torna a obrir IPTBe fent doble clic a iptbe.command.',
-  no_vlc: "Descarrega'l de videolan.org i posa'l a la carpeta Aplicacions.",
-};
+// Títol i consell surten del codi d'error. Si no en tenim per a aquest codi, no passa res:
+// el títol cau al genèric i el consell simplement no apareix.
+const errTitle = kind => t(STR.ca[`err.t.${kind}`] !== undefined ? `err.t.${kind}` : 'err.t.generic');
+const errHelp  = kind => STR.ca[`err.h.${kind}`] !== undefined ? t(`err.h.${kind}`) : null;
 
 function errorPane(host, e, retry) {
   const acts = el('div', { class: 'acts' });
   if (retry) {
     const b = el('button', { class: 'btn btn-p', onclick: async () => {
-      b.disabled = true; b.textContent = 'Provant…'; await retry();
+      b.disabled = true; b.textContent = t('err.retrying'); await retry();
     } });
-    b.append(svg('refr', 15), 'Torna-ho a provar');
+    b.append(svg('refr', 15), t('err.retry'));
     acts.append(b);
   }
   if (e.kind === 'auth' || e.kind === 'unconfigured')
-    acts.append(el('button', { class: 'btn btn-s', text: 'Anar a Configuració',
+    acts.append(el('button', { class: 'btn btn-s', text: t('err.goconfig'),
       onclick: () => { p.remove(); go('config'); } }));
   const p = el('div', { class: 'pane' },
     el('div', { class: 'panebox' },
       el('div', { style: 'color:var(--live)', html: ic('warn', 30, 1.5) }),
-      el('h3', { text: ERR_TITLE[e.kind] || 'Alguna cosa ha fallat' }),
+      el('h3', { text: errTitle(e.kind) }),
       el('p', { text: e.msg }),
-      ERR_HELP[e.kind] ? el('p', { class: 'slow', text: ERR_HELP[e.kind] }) : null,
+      errHelp(e.kind) ? el('p', { class: 'slow', text: errHelp(e.kind) }) : null,
       e.detail ? el('div', { class: 'det', text: String(e.detail).slice(0, 200) }) : null,
       acts));
   host.append(p);
@@ -221,17 +218,16 @@ function setOffline(on, why) {
   if (offlineBar) return;
   offlineBar = el('div', { class: 'offline' },
     svg('warn', 17),
-    el('span', { html: '<b>IPTBe no respon.</b> ' + (why || 'Els canvis que facis ara no es desaran.') +
-      ' Aquesta pestanya pot ser d\'una arrencada anterior.' }),
-    el('button', { text: 'Reintentar', onclick: () => location.reload() }));
+    el('span', { html: `<b>${t('off.title')}</b> ${why || t('off.default')} ${t('off.tail')}` }),
+    el('button', { text: t('off.retry'), onclick: () => location.reload() }));
   document.body.append(offlineBar);
 }
 
 let toastT = null;
 function toast(msg, bad = false) {
-  const t = $('#toast');
-  t.textContent = msg; t.className = 'toast' + (bad ? ' bad' : ''); t.hidden = false;
-  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, bad ? 6000 : 3200);
+  const node = $('#toast');
+  node.textContent = msg; node.className = 'toast' + (bad ? ' bad' : ''); node.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => { node.hidden = true; }, bad ? 6000 : 3200);
 }
 
 // Diàleg modal. A diferència del toast, no marxa sol: es queda fins que el tanques.
@@ -259,31 +255,23 @@ function modal(title, ...body) {
 // Si algú clica per reproduir i no hi ha VLC, no en tenim prou amb avisar-lo:
 // li hem de dir exactament què baixar i on posar-ho.
 function noVlcModal() {
-  const m = modal('Et falta el VLC',
-    el('p', { text: "IPTBe no reprodueix el vídeo ell mateix: el passa al VLC, que és qui sap "
-                  + "llegir els canals i les pel·lícules del teu proveïdor. Ara mateix no el "
-                  + "trobo instal·lat en aquest Mac." }),
+  const m = modal(t('vlc.title'),
+    el('p', { text: t('vlc.intro') }),
     el('div', { class: 'modal-steps' },
-      el('div', {}, el('b', { text: '1' }), el('span', { html:
-        'Descarrega el VLC de <a href="https://www.videolan.org/vlc/" target="_blank" '
-        + 'rel="noopener">videolan.org/vlc</a>. És gratuït i de codi obert.' })),
-      el('div', {}, el('b', { text: '2' }), el('span', { html:
-        'Obre el fitxer <code>.dmg</code> i arrossega el VLC a la carpeta <b>Aplicacions</b>.' })),
-      el('div', {}, el('b', { text: '3' }), el('span', { html:
-        'Ha de quedar exactament a <code>/Applications/VLC.app</code>. Si el deixes a Descàrregues '
-        + 'o dins una subcarpeta, no el trobaré.' }))));
+      el('div', {}, el('b', { text: '1' }), el('span', { html: t('vlc.s1') })),
+      el('div', {}, el('b', { text: '2' }), el('span', { html: t('vlc.s2') })),
+      el('div', {}, el('b', { text: '3' }), el('span', { html: t('vlc.s3') }))));
 
-  const warn = el('span', { class: 'modal-note', hidden: true,
-    text: 'Segueixo sense trobar-lo a /Applications.' });
-  const later = el('button', { class: 'btn btn-s', text: 'Ara no', onclick: m.close });
+  const warn = el('span', { class: 'modal-note', hidden: true, text: t('vlc.still') });
+  const later = el('button', { class: 'btn btn-s', text: t('vlc.later'), onclick: m.close });
   const again = el('button', { class: 'btn btn-p' });
-  const label = () => { again.textContent = ''; again.append(svg('refr', 15), "Ja l'he instal·lat"); };
+  const label = () => { again.textContent = ''; again.append(svg('refr', 15), t('vlc.done')); };
   label();
   again.onclick = async () => {
-    again.disabled = true; again.textContent = 'Comprovant…'; warn.hidden = true;
+    again.disabled = true; again.textContent = t('vlc.checking'); warn.hidden = true;
     try { S.status = await api('/api/status', { timeout: 8000 }); } catch { /* ja ho dirà el banner */ }
     again.disabled = false; label();
-    if (S.status?.vlc) { m.close(); toast('Perfecte, ja trobo el VLC. Torna-ho a provar.'); }
+    if (S.status?.vlc) { m.close(); toast(t('vlc.found')); }
     else warn.hidden = false;
   };
   m.acts.append(warn, later, again);
@@ -303,22 +291,22 @@ async function ensureEpg(refresh = false) {
 }
 function progOf(epgId) {
   const list = S.epg?.by?.[epgId]; if (!list) return null;
-  const t = nowSec();
+  const ara = nowSec();
   for (let i = 0; i < list.length; i++)
-    if (list[i].s <= t && t < list[i].e) return { now: list[i], next: list[i + 1] || null };
-  const nx = list.find(p => p.s > t);
+    if (list[i].s <= ara && ara < list[i].e) return { now: list[i], next: list[i + 1] || null };
+  const nx = list.find(p => p.s > ara);
   return nx ? { now: null, next: nx } : null;
 }
 
 // ───────────────────────── reproducció ─────────────────────────
 
 async function play(kind, id, label, ext) {
-  toast('Obrint el VLC…');
+  toast(t('play.opening'));
   try {
     const r = await api('/api/play', { method: 'POST', timeout: 20000,
       body: { kind, id, label, ext: ext || 'mkv' } });
     S.now = r.now; renderNow();
-    toast(`Reproduint «${label}» al VLC`);
+    toast(t('play.playing', label));
   } catch (e) {
     if (e.kind === 'no_vlc') noVlcModal();
     else toast(e.msg, true);
@@ -326,19 +314,36 @@ async function play(kind, id, label, ext) {
 }
 async function stopPlay() {
   try { const r = await api('/api/stop', { method: 'POST', timeout: 15000 });
-    S.now = r.now; renderNow(); toast('Reproducció aturada'); }
+    S.now = r.now; renderNow(); toast(t('play.stopped')); }
   catch (e) { toast(e.msg, true); }
 }
 async function quitApp() {
-  if (!confirm('Vols aturar IPTBe? El servidor es tancarà. El VLC continuarà obert.')) return;
+  if (!confirm(t('quit.confirm'))) return;
   try { await api('/api/quit', { method: 'POST', timeout: 8000 }); } catch {}
   document.body.innerHTML =
     '<div class="pane"><div class="panebox">' +
-    '<h3>IPTBe s\'ha aturat</h3>' +
-    '<p>El servidor ja no corre en segon pla. Pots tancar aquesta pestanya.</p>' +
-    '<p class="slow">Per tornar-hi, doble clic a <b>iptbe.command</b>.</p>' +
-    '</div></div>';
+    `<h3>${t('quit.title')}</h3><p>${t('quit.body')}</p>` +
+    `<p class="slow">${t('quit.back')}</p></div></div>`;
   clearInterval(pingT);
+}
+
+// ───────────────────────── idioma ─────────────────────────
+
+// Canviar d'idioma repinta la vista sencera. Com que cada go() reconstrueix tot el DOM
+// des de zero, no cal ni recarregar la pàgina ni cap sistema reactiu.
+function langPicker() {
+  const sel = el('select', { 'aria-label': t('lang.label'),
+    onchange: () => { if (setLang(sel.value)) redraw(); } });
+  for (const [codi, info] of Object.entries(LANGS))
+    sel.append(el('option', { value: codi, selected: codi === lang() }, info.nom));
+  return el('div', { class: 'langpick' }, svg('globe', 16), sel, svg('down', 13));
+}
+
+// La pantalla de credencials del primer cop no té barra lateral, així que es repinta
+// sola en comptes de passar per go().
+function redraw() {
+  if (S.view === 'config' && !S.status?.configured) { vConfig(null, true); return; }
+  go(S.view, S.arg);
 }
 
 // ───────────────────────── estructura ─────────────────────────
@@ -353,8 +358,8 @@ function shell() {
       el('span', { class: 'brand-d' })));
 
   const form = el('form', { class: 'srch', onsubmit: e => { e.preventDefault(); doSearch(inp.value); } });
-  const inp = el('input', { type: 'search', placeholder: 'Cerca a tot el catàleg',
-    'aria-label': 'Cerca', value: S.query });
+  const inp = el('input', { type: 'search', placeholder: t('search.all'),
+    'aria-label': t('search.aria'), value: S.query });
   // La X del camp només esborra el text de la pantalla. Si no netegem també l'estat,
   // el text reapareix la propera vegada que es redibuixa la barra lateral.
   const cleared = () => {
@@ -370,38 +375,38 @@ function shell() {
   const nav = el('nav', { class: 'nav' });
   const counts = {
     live: S.cat.live?.items.length, vod: S.cat.vod?.items.length, series: S.cat.series?.items.length };
-  [['home', 'home', 'Inici', null],
-   ['live', 'tv', 'TV en directe', counts.live],
-   ['vod', 'film', 'Pel·lícules', counts.vod],
-   ['series', 'stack', 'Sèries', counts.series]].forEach(([id, icn, label, ct]) => {
+  [['home', 'home', t('nav.home'), null],
+   ['live', 'tv', t('nav.live'), counts.live],
+   ['vod', 'film', t('nav.vod'), counts.vod],
+   ['series', 'stack', t('nav.series'), counts.series]].forEach(([id, icn, label, ct]) => {
     const b = el('button', { class: 'nv' + (S.view === id ? ' on' : ''), onclick: () => go(id) });
     b.append(svg('tv' === icn ? 'tv' : icn, 17), el('span', { text: label }));
     if (ct) b.append(el('span', { class: 'ct tnum', text: fmt(ct) }));
     nav.append(b);
   });
-  side.append(nav, el('div', { class: 'navsep' }), el('div', { class: 'navlbl', text: 'EL MEU' }));
+  side.append(nav, el('div', { class: 'navsep' }), el('div', { class: 'navlbl', text: t('nav.mine') }));
 
   const nav2 = el('nav', { class: 'nav' });
   const bf = el('button', { class: 'nv' + (S.view === 'favs' ? ' on' : ''), onclick: () => go('favs') });
   // El comptador existeix sempre (encara que buit) perquè es pugui refrescar a l'instant.
   const favct = el('span', { class: 'ct tnum', id: 'favct' });
-  bf.append(svg('star', 17), el('span', { text: 'Favorits' }), favct);
+  bf.append(svg('star', 17), el('span', { text: t('nav.favs') }), favct);
   nav2.append(bf);
   renderFavCount(favct);
   side.append(nav2);
 
   const foot = el('div', { class: 'side-foot' });
   const bc = el('button', { class: 'nv' + (S.view === 'config' ? ' on' : ''), onclick: () => go('config') });
-  bc.append(svg('cog', 17), el('span', { text: 'Configuració' }));
-  const bq = el('button', { class: 'nv', onclick: quitApp, title: 'Atura el servidor local' });
-  bq.append(svg('power', 17), el('span', { text: 'Aturar IPTBe' }));
-  foot.append(bc, bq);
+  bc.append(svg('cog', 17), el('span', { text: t('nav.config') }));
+  const bq = el('button', { class: 'nv', onclick: quitApp, title: t('nav.quit.title') });
+  bq.append(svg('power', 17), el('span', { text: t('nav.quit') }));
+  foot.append(langPicker(), bc, bq);
   const at = S.cat.live?.at;
   if (at) {
     const days = Math.floor((Date.now() / 1000 - at) / 86400);
     const m = el('div', { class: 'side-meta' });
     m.append(svg('refr', 14), el('span', {
-      text: days <= 0 ? 'Dades actualitzades avui' : `Dades de fa ${days} ${days === 1 ? 'dia' : 'dies'}` }));
+      text: days <= 0 ? t('side.fresh.today') : t('side.fresh.days', days) }));
     foot.append(m);
   }
   side.append(foot);
@@ -421,10 +426,10 @@ function renderNow() {
   if (!S.now?.label) { bar.hidden = true; return; }
   bar.hidden = false;
   const stop = el('button', { class: 'btn-d', onclick: stopPlay });
-  stop.append(svg('stop', 14, 1.6, 'currentColor'), 'Aturar');
+  stop.append(svg('stop', 14, 1.6, 'currentColor'), t('now.stop'));
   bar.append(
     el('span', { class: 'dot' }),
-    el('span', { class: 'now-lbl', text: S.now.kind === 'live' ? 'EN DIRECTE' : 'REPRODUINT' }),
+    el('span', { class: 'now-lbl', text: t(S.now.kind === 'live' ? 'now.live' : 'now.playing') }),
     el('span', { class: 'now-t', text: S.now.label }),
     stop);
 }
@@ -439,14 +444,14 @@ function header(main, title, sub, tools = []) {
 }
 function refreshChip(kind) {
   const b = el('button', { class: 'chip', onclick: async () => {
-    b.disabled = true; b.textContent = 'Actualitzant…';
+    b.disabled = true; b.textContent = t('act.refreshing');
     try {
       if (kind === 'live') { await ensureCatalog('live', true); await ensureEpg(true); }
       else await ensureCatalog(kind, true);
-      toast('Dades actualitzades'); go(S.view);
-    } catch (e) { toast(e.msg, true); b.disabled = false; b.textContent = ''; b.append(svg('refr', 14), 'Actualitzar'); }
+      toast(t('toast.refreshed')); go(S.view);
+    } catch (e) { toast(e.msg, true); b.disabled = false; b.textContent = ''; b.append(svg('refr', 14), t('act.refresh')); }
   } });
-  b.append(svg('refr', 14), 'Actualitzar');
+  b.append(svg('refr', 14), t('act.refresh'));
   return b;
 }
 
@@ -462,11 +467,11 @@ function go(view, arg) {
 // — Inici —
 // La portada respon "què puc veure ara mateix", tinguis favorits o no.
 async function vHome(main) {
-  header(main, 'Inici', null, [refreshChip('live')]);
+  header(main, t('nav.home'), null, [refreshChip('live')]);
   const scroll = el('div', { class: 'scroll' }); main.append(scroll);
   const ok = await guard(main, async () => {
     await ensureCatalog('live'); await ensureEpg().catch(() => {}); return true;
-  }, 'Carregant…');
+  }, t('load.default'));
   if (!ok) return;
 
   const box = el('div', { class: 'home' }); scroll.append(box);
@@ -478,9 +483,9 @@ async function vHome(main) {
     sports.forEach(c => sg.append(chCard(c)));
     box.append(el('div', { class: 'hrow' },
       el('div', { class: 'hhead' },
-        el('span', { class: 'sec live', text: 'ESPORTS ARA' }),
+        el('span', { class: 'sec live', text: t('home.sports') }),
         el('span', { style: 'font-size:11.5px;color:var(--ink4)',
-          text: `${sports.length} ${sports.length === 1 ? 'partit en joc' : 'partits en joc'}` })), sg));
+          text: t('home.sports.n', sports.length) })), sg));
   }
 
   // Continuar veient
@@ -492,22 +497,22 @@ async function vHome(main) {
       el('button', { class: 'contcard', onclick: () => go('serie', sid) },
         el('div', { class: 'pw' }, v.cover ? el('img', { src: imgSrc(v.cover), alt: '', loading: 'lazy' }) : null),
         el('div', { class: 'm' },
-          el('b', { text: v.name || 'Sèrie' }),
+          el('b', { text: v.name || t('home.serie') }),
           el('div', { class: 'e tnum', text: `T${v.s} · E${v.e}` }),
           el('div', { style: 'font-size:12.5px;color:var(--ink2)', text: v.title || '' })))));
     box.append(el('div', { class: 'hrow' },
-      el('div', { class: 'hhead' }, el('span', { class: 'sec', text: 'CONTINUAR VEIENT' })), cg));
+      el('div', { class: 'hhead' }, el('span', { class: 'sec', text: t('home.continue') })), cg));
   }
 
   // Novetats: es carreguen després, per no endarrerir els esports.
   const slots = [
-    ['series', 'NOVETATS · SÈRIES'],
-    ['vod', 'NOVETATS · PEL·LÍCULES'],
+    ['series', t('home.new.series')],
+    ['vod', t('home.new.vod')],
   ].map(([kind, label]) => {
     const row = el('div', { class: 'hrow' },
       el('div', { class: 'hhead' },
         el('span', { class: 'sec', text: label }),
-        el('span', { class: 'slot-note', style: 'font-size:11.5px;color:var(--ink4)', text: 'carregant…' })));
+        el('span', { class: 'slot-note', style: 'font-size:11.5px;color:var(--ink4)', text: t('home.loading') })));
     const grid = el('div', { class: 'grid newrow' });
     row.append(grid);
     box.append(row);
@@ -523,7 +528,8 @@ async function vHome(main) {
       const d = new Date(fresh[0].t * 1000);
       const today = new Date().toDateString() === d.toDateString();
       s.row.querySelector('.slot-note').textContent = today
-        ? "afegides avui" : 'afegides el ' + d.toLocaleDateString('ca-ES', { day: 'numeric', month: 'short' });
+        ? t('home.added.today')
+        : t('home.added.on', d.toLocaleDateString(locale(), { day: 'numeric', month: 'short' }));
       fresh.forEach(x => s.grid.append(poster(x, s.kind)));
     } catch {
       s.row.remove();   // si falla, simplement no ensenyem la secció
@@ -554,9 +560,9 @@ const SPORT_CAT = /DEPORTES|F1|FORMULA|MOTO|LIGA|NBA|NFL|NHL|UFC|TENNIS|EVENTOS/
 // Un partit de veritat porta els equips al títol ("LALIGA - R. Sociedad - Espanyol").
 // Quan el canal no emet res, el títol és només la marca del canal ("M+ LALIGA 2").
 function isFixture(title) {
-  const t = (title || '').trim();
-  if (!t || !/\S\s*-\s*\S/.test(t)) return false;      // sense guionet no és un enfrontament
-  if (/^disfruta\b/i.test(t)) return false;              // "Disfruta de DAZN en Movistar Plus"
+  const txt = (title || '').trim();
+  if (!txt || !/\S\s*-\s*\S/.test(txt)) return false;  // sense guionet no és un enfrontament
+  if (/^disfruta\b/i.test(txt)) return false;            // "Disfruta de DAZN en Movistar Plus"
   return true;
 }
 
@@ -583,7 +589,7 @@ function chCard(c) {
   const card = el('button', { class: 'chcard', onclick: () => play('live', c.id, c.n) });
   const top = el('div', { class: 't' });
   const st = el('span', { class: 'star' + (isFav('live', c.id) ? ' on' : ''),
-    style: 'margin-left:auto', role: 'button', tabindex: '0', title: 'Favorit',
+    style: 'margin-left:auto', role: 'button', tabindex: '0', title: t('live.fav'),
     onclick: e => { e.stopPropagation(); toggleFav('live', c.id); st.classList.toggle('on');
       st.innerHTML = ic('star', 15, 1.5, st.classList.contains('on') ? 'currentColor' : 'none'); } });
   st.innerHTML = ic('star', 15, 1.5, isFav('live', c.id) ? 'currentColor' : 'none');
@@ -593,14 +599,14 @@ function chCard(c) {
     const pct = Math.max(1, Math.min(100, Math.round((nowSec() - p.now.s) / (p.now.e - p.now.s) * 100)));
     card.append(el('div', { style: 'display:flex;flex-direction:column;gap:6px' },
       el('div', { style: 'display:flex;align-items:baseline;gap:7px' },
-        el('span', { class: 'sec live', text: 'ARA' }),
+        el('span', { class: 'sec live', text: t('live.now') }),
         el('span', { class: 'tnum', style: 'font-size:11px;color:var(--ink4)',
           text: `${hhmm(p.now.s)}–${hhmm(p.now.e)}` })),
       el('div', { class: 'pt', text: p.now.t }),
       el('div', { class: 'prog live' }, el('i', { style: `width:${pct}%` }))));
-    if (p.next) card.append(el('div', { class: 'nx tnum', text: `Després · ${hhmm(p.next.s)} ${p.next.t}` }));
+    if (p.next) card.append(el('div', { class: 'nx tnum', text: t('live.after', hhmm(p.next.s), p.next.t) }));
   } else {
-    card.append(el('div', { class: 'pt noepg', text: 'Sense guia de programació' }));
+    card.append(el('div', { class: 'pt noepg', text: t('live.noepg') }));
   }
   return card;
 }
@@ -611,13 +617,13 @@ function logoOf(c) {
   const box = monoOf(c.n);
   if (!c.l) return box;
   const i = new Image();
-  i.onload = () => { const t = el('img', { class: 'logo', src: i.src, alt: '' }); box.replaceWith(t); };
+  i.onload = () => { box.replaceWith(el('img', { class: 'logo', src: i.src, alt: '' })); };
   i.src = imgSrc(c.l);
   return box;
 }
 function monoOf(name) {
-  const t = (name || '?').replace(/\b(HD|FHD|SD|4K|1080|720)\b/gi, '').trim();
-  return el('span', { class: 'mono', text: (t.slice(0, 3) || '?').toUpperCase() });
+  const net = (name || '?').replace(/\b(HD|FHD|SD|4K|1080|720)\b/gi, '').trim();
+  return el('span', { class: 'mono', text: (net.slice(0, 3) || '?').toUpperCase() });
 }
 
 // — TV en directe —
@@ -625,15 +631,15 @@ async function vLive(main) {
   const col = el('div', { class: 'col' });
   main.classList.add('rowed'); main.append(col);
   S.q ||= {};
-  const search = sectionSearch('Cerca un canal', S.q.live || '',
+  const search = sectionSearch(t('live.search'), S.q.live || '',
     v => { S.q.live = v; S.page.live = 0; render(); });
-  header(col, 'TV en directe', null, [search.node, refreshChip('live')]);
+  header(col, t('nav.live'), null, [search.node, refreshChip('live')]);
   const wrap = el('div', { class: 'scroll' }); col.append(wrap);
   const ok = await guard(main, async () => {
     await ensureCatalog('live');
-    try { await ensureEpg(); } catch (e) { toast('Canals carregats, però la guia no: ' + e.msg, true); }
+    try { await ensureEpg(); } catch (e) { toast(t('live.epgfail', e.msg), true); }
     return true;
-  }, 'Carregant canals i guia de programació…');
+  }, t('load.live'));
   if (!ok) return;
 
   const cats = S.cat.live.cats, items = S.cat.live.items;
@@ -641,7 +647,7 @@ async function vLive(main) {
   S.pick.live ||= cats.find(c => counts[c.id])?.id || cats[0]?.id;
 
   const rail = el('aside', { class: 'rail' },
-    el('div', { class: 'navlbl', text: `CATEGORIES · ${cats.filter(c => counts[c.id]).length}` }));
+    el('div', { class: 'navlbl', text: t('live.cats', cats.filter(c => counts[c.id]).length) }));
   const railList = el('div', { class: 'list' });
   rail.append(railList);
   main.prepend(rail);
@@ -649,9 +655,9 @@ async function vLive(main) {
   const chanScroll = el('div', { class: 'chanwrap' }); wrap.append(chanScroll);
   chanScroll.append(el('div', { class: 'cols chead' },
     el('span'), el('span'),
-    el('span', { class: 'navlbl', text: 'CANAL' }),
-    el('span', { class: 'navlbl', style: 'color:var(--live)', text: 'ARA · ' + hhmm(nowSec()) }),
-    el('span', { class: 'navlbl', text: 'A CONTINUACIÓ' }), el('span')));
+    el('span', { class: 'navlbl', text: t('live.col.channel') }),
+    el('span', { class: 'navlbl', style: 'color:var(--live)', text: t('live.col.now', hhmm(nowSec())) }),
+    el('span', { class: 'navlbl', text: t('live.col.next') }), el('span')));
   const box = el('div', { style: 'padding:0 30px' }); chanScroll.append(box);
 
   function render() {
@@ -675,14 +681,14 @@ async function vLive(main) {
     col.querySelector('.sub')?.remove();
     col.querySelector('.head > div').append(el('div', { class: 'sub',
       text: cercant
-        ? `«${q}» · ${fmt(list.length)} ${list.length === 1 ? 'canal' : 'canals'} a totes les categories`
-        : `${cats.find(c => c.id === S.pick.live)?.n || ''} · ${fmt(list.length)} canals` +
-          (S.epg ? ` · guia de les ${hhmm(S.epg.at)}` : ' · sense guia') }));
+        ? t('live.sub.search', q, fmt(list.length))
+        : t('live.sub.cat', cats.find(c => c.id === S.pick.live)?.n || '', fmt(list.length)) +
+          (S.epg ? t('live.sub.guide', hhmm(S.epg.at)) : t('live.sub.noguide')) }));
 
     box.textContent = '';
     chanScroll.querySelectorAll('.chip').forEach(n => n.remove());
     if (!list.length) {
-      box.append(el('div', { class: 'empty', text: `Cap canal per a «${q}».` }));
+      box.append(el('div', { class: 'empty', text: t('live.empty', q) }));
       return;
     }
     paged(box, list, 120, 'live', c => liveRow(c), render);
@@ -694,7 +700,7 @@ function liveRow(c) {
   const p = progOf(c.e);
   const row = el('button', { class: 'row cols', onclick: () => play('live', c.id, c.n) });
   const st = el('span', { class: 'star' + (isFav('live', c.id) ? ' on' : ''),
-    role: 'button', tabindex: '0', title: 'Favorit',
+    role: 'button', tabindex: '0', title: t('live.fav'),
     onclick: e => { e.stopPropagation(); toggleFav('live', c.id);
       st.classList.toggle('on'); st.innerHTML = ic('star', 16, 1.5, st.classList.contains('on') ? 'currentColor' : 'none'); } });
   st.innerHTML = ic('star', 16, 1.5, isFav('live', c.id) ? 'currentColor' : 'none');
@@ -712,27 +718,27 @@ function liveRow(c) {
         el('b', { text: p.now.t })),
       el('div', { class: 'prog live', style: 'max-width:300px' }, el('i', { style: `width:${pct}%` })));
     nextCell = p.next ? el('div', { class: 'pnext' },
-      el('span', { class: 'tnum', text: 'DESPRÉS · ' + hhmm(p.next.s) }),
+      el('span', { class: 'tnum', text: t('live.next', hhmm(p.next.s)) }),
       el('b', { text: p.next.t })) : el('div');
   } else {
-    nowCell = el('div', { class: 'noepg', text: 'Sense guia de programació' });
+    nowCell = el('div', { class: 'noepg', text: t('live.noepg') });
     nextCell = el('div');
   }
   row.append(st, logoOf(c), name, nowCell, nextCell,
-    c.a ? el('span', { style: 'color:var(--ink4)', title: 'Es pot recuperar', html: ic('rew', 16) }) : el('span'));
+    c.a ? el('span', { style: 'color:var(--ink4)', title: t('live.archive'), html: ic('rew', 16) }) : el('span'));
   return row;
 }
 
 // — Graelles de pel·lícules i sèries —
 async function vGrid(main) {
   const kind = S.view;
-  const title = kind === 'vod' ? 'Pel·lícules' : 'Sèries';
+  const title = t(kind === 'vod' ? 'nav.vod' : 'nav.series');
   S.q ||= {};
-  const search = sectionSearch(kind === 'vod' ? 'Cerca una pel·lícula' : 'Cerca una sèrie',
+  const search = sectionSearch(t(kind === 'vod' ? 'grid.vod.search' : 'grid.series.search'),
     S.q[kind] || '', v => { S.q[kind] = v; S.page[kind] = 0; render(); });
   header(main, title, null, [search.node, refreshChip(kind)]);
   const wrap = el('div', { class: 'scroll' }); main.append(wrap);
-  const ok = await guard(main, () => ensureCatalog(kind), `Carregant ${title.toLowerCase()}…`);
+  const ok = await guard(main, () => ensureCatalog(kind), t(kind === 'vod' ? 'load.vod' : 'load.series'));
   if (!ok) return;
 
   const { cats, items } = S.cat[kind];
@@ -765,13 +771,13 @@ async function vGrid(main) {
     main.querySelector('.sub')?.remove();
     main.querySelector('.head > div').append(el('div', { class: 'sub',
       text: cercant
-        ? `«${q}» · ${fmt(list.length)} ${list.length === 1 ? 'resultat' : 'resultats'} a totes les categories`
-        : `${catLabel(cats.find(c => c.id === S.pick[kind])?.n || '', kind)} · ${fmt(list.length)} títols` }));
+        ? t('grid.sub.search', q, fmt(list.length))
+        : t('grid.sub.cat', catLabel(cats.find(c => c.id === S.pick[kind])?.n || '', kind), fmt(list.length)) }));
 
     results.textContent = '';
     if (!list.length) {
       results.append(el('div', { class: 'empty',
-        text: cercant ? `Cap resultat per a «${q}».` : 'Aquesta categoria és buida.' }));
+        text: cercant ? t('grid.empty.search', q) : t('grid.empty.cat') }));
       return;
     }
     const grid = el('div', { class: 'grid' }); results.append(grid);
@@ -817,21 +823,21 @@ function paged(host, list, size, key, make, redraw) {
   if (list.length > slice.length) {
     const more = el('button', { class: 'chip', style: 'margin:16px 30px 30px',
       onclick: () => { S.page[key] = n; (redraw || (() => go(S.view)))(); } });
-    more.append(svg('down', 14), `Carrega'n ${fmt(Math.min(size, list.length - slice.length))} més ` +
-      `(en queden ${fmt(list.length - slice.length)})`);
+    more.append(svg('down', 14), t('grid.more', fmt(Math.min(size, list.length - slice.length)),
+                                    fmt(list.length - slice.length)));
     (host.parentElement || host).append(more);
   }
 }
 
 // — Fitxa de sèrie —
 async function vSerie(main, sid) {
-  header(main, 'Sèrie', null, [backChip('series')]);
+  header(main, t('serie.title'), null, [backChip('series')]);
   const wrap = el('div', { class: 'scroll' }); main.append(wrap);
   const data = await guard(main, () => api('/api/series/' + sid, { timeout: 40000 }),
-    'Carregant la fitxa…');
+    t('load.sheet'));
   if (!data) return;
   const info = data.info || {}, seasons = data.episodes || {};
-  main.querySelector('.h1').textContent = info.name || 'Sèrie';
+  main.querySelector('.h1').textContent = info.name || t('serie.title');
   const keys = Object.keys(seasons).sort((a, b) => (+a) - (+b));
   const total = keys.reduce((a, k) => a + seasons[k].length, 0);
   S.pick.season = keys.includes(S.pick.season) ? S.pick.season : keys[0];
@@ -847,17 +853,17 @@ async function vSerie(main, sid) {
   const r = parseFloat(info.rating);
   if (r > 0) facts.append(el('span', { class: 'rt tnum', text: r.toFixed(1).replace('.', ',') }));
   [(info.releaseDate || '').slice(0, 4), (info.genre || '').replace(/\s*\/\s*/g, ', '),
-   `${keys.length} ${keys.length === 1 ? 'temporada' : 'temporades'} · ${total} episodis`,
-   info.episode_run_time ? `~${info.episode_run_time} min` : ''
-  ].filter(Boolean).forEach((t, i, a) => {
-    facts.append(el('span', { text: t })); if (i < a.length - 1) facts.append(el('i', { text: '·' })); });
+   t('serie.seasons', keys.length, total),
+   info.episode_run_time ? t('serie.runtime', info.episode_run_time) : ''
+  ].filter(Boolean).forEach((txt, i, a) => {
+    facts.append(el('span', { text: txt })); if (i < a.length - 1) facts.append(el('i', { text: '·' })); });
 
   const favBtn = el('button', { class: 'btn btn-s', onclick: () => {
     toggleFav('series', sid); paintFav(); } });
   const paintFav = () => { favBtn.textContent = '';
     favBtn.style.color = isFav('series', sid) ? 'var(--acc)' : '';
     favBtn.append(svg('star', 15, 1.5, isFav('series', sid) ? 'currentColor' : 'none'),
-      isFav('series', sid) ? 'Als favorits' : 'Afegir a favorits'); };
+      t(isFav('series', sid) ? 'fav.on' : 'fav.add')); };
   paintFav();
 
   d.append(el('div', { class: 'dtop' }, pw,
@@ -867,14 +873,14 @@ async function vSerie(main, sid) {
         el('div', { style: 'margin-left:auto;display:flex;gap:8px' }, favBtn)),
       facts,
       info.plot ? el('div', { class: 'dplot', text: info.plot }) : null,
-      info.cast ? el('div', { class: 'dcast' }, el('em', { text: 'REPARTIMENT' }),
+      info.cast ? el('div', { class: 'dcast' }, el('em', { text: t('sheet.cast') }),
         document.createTextNode(info.cast.split(',').map(s => s.trim()).join(' · '))) : null)));
 
   const tabs = el('div', { class: 'tabs' });
   keys.forEach(k => {
     const b = el('button', { class: 'tab' + (S.pick.season === k ? ' on' : ''),
       onclick: () => { S.pick.season = k; go('serie', sid); } });
-    b.append(`Temporada ${k}`, el('span', { class: 'ct tnum', text: seasons[k].length }));
+    b.append(t('serie.season', k), el('span', { class: 'ct tnum', text: seasons[k].length }));
     tabs.append(b);
   });
   d.append(tabs);
@@ -902,21 +908,21 @@ function epRow(e, sid, info) {
   if (seen) mk.innerHTML = ic('check', 12, 2.2);
   row.append(mk,
     el('span', { class: 'no tnum', text: num }),
-    el('span', { class: 'ti' }, el('b', { text: title || `Episodi ${num}` }),
+    el('span', { class: 'ti' }, el('b', { text: title || t('serie.ep', num) }),
       inf.plot ? el('span', { text: inf.plot }) : null),
-    el('span', { class: 'du tnum', text: dur.length === 2 ? `${+dur[0] * 60 + +dur[1]} min` : '' }),
+    el('span', { class: 'du tnum', text: dur.length === 2 ? t('serie.min', +dur[0] * 60 + +dur[1]) : '' }),
     el('span', { style: 'color:var(--acc)', html: ic('out', 16) }));
   return row;
 }
 
 // — Fitxa de pel·lícula —
 async function vMovie(main, vid) {
-  header(main, 'Pel·lícula', null, [backChip('vod')]);
+  header(main, t('movie.title'), null, [backChip('vod')]);
   const wrap = el('div', { class: 'scroll' }); main.append(wrap);
-  const data = await guard(main, () => api('/api/movie/' + vid, { timeout: 40000 }), 'Carregant la fitxa…');
+  const data = await guard(main, () => api('/api/movie/' + vid, { timeout: 40000 }), t('load.sheet'));
   if (!data) return;
   const i = data.info || {}, m = data.movie_data || {};
-  const name = m.name || i.name || 'Pel·lícula';
+  const name = m.name || i.name || t('movie.title');
   main.querySelector('.h1').textContent = name;
 
   const pw = el('div', { class: 'pw' });
@@ -929,17 +935,17 @@ async function vMovie(main, vid) {
   const r = parseFloat(i.rating);
   if (r > 0) facts.append(el('span', { class: 'rt tnum', text: r.toFixed(1).replace('.', ',') }));
   [(i.releasedate || i.releaseDate || '').slice(0, 4), i.genre, i.duration, i.director]
-    .filter(Boolean).forEach((t, k, a) => {
-      facts.append(el('span', { text: t })); if (k < a.length - 1) facts.append(el('i', { text: '·' })); });
+    .filter(Boolean).forEach((txt, k, a) => {
+      facts.append(el('span', { text: txt })); if (k < a.length - 1) facts.append(el('i', { text: '·' })); });
 
   const playBtn = el('button', { class: 'btn btn-p',
     onclick: () => play('movie', vid, name, m.container_extension || 'mkv') });
-  playBtn.append(svg('play', 14, 1.6, 'currentColor'), 'Obrir al VLC');
+  playBtn.append(svg('play', 14, 1.6, 'currentColor'), t('movie.open'));
   const favBtn = el('button', { class: 'btn btn-s', onclick: () => { toggleFav('vod', vid); paint(); } });
   const paint = () => { favBtn.textContent = '';
     favBtn.style.color = isFav('vod', vid) ? 'var(--acc)' : '';
     favBtn.append(svg('star', 15, 1.5, isFav('vod', vid) ? 'currentColor' : 'none'),
-      isFav('vod', vid) ? 'Als favorits' : 'Afegir a favorits'); };
+      t(isFav('vod', vid) ? 'fav.on' : 'fav.add')); };
   paint();
 
   wrap.append(el('div', { class: 'detail' },
@@ -948,20 +954,20 @@ async function vMovie(main, vid) {
         el('div', { class: 'serif dtitle', text: name }),
         facts,
         i.plot ? el('div', { class: 'dplot', text: i.plot }) : null,
-        i.cast ? el('div', { class: 'dcast' }, el('em', { text: 'REPARTIMENT' }),
+        i.cast ? el('div', { class: 'dcast' }, el('em', { text: t('sheet.cast') }),
           document.createTextNode(i.cast)) : null,
         el('div', { style: 'display:flex;gap:9px;margin-top:6px' }, playBtn, favBtn)))));
 }
 
 function backChip(to) {
   const b = el('button', { class: 'chip', onclick: () => go(to) });
-  b.append(svg('left', 14), 'Tornar');
+  b.append(svg('left', 14), t('act.back'));
   return b;
 }
 
 // — Favorits —
 async function vFavs(main) {
-  header(main, 'Favorits', null, []);
+  header(main, t('nav.favs'), null, []);
   const wrap = el('div', { class: 'scroll' }); main.append(wrap);
   const need = ['live', 'vod', 'series'].filter(k => Object.keys(favOf(k)).length && !S.cat[k]);
   if (need.length) {
@@ -969,7 +975,7 @@ async function vFavs(main) {
       for (const k of need) await ensureCatalog(k);
       if (Object.keys(favOf('live')).length) await ensureEpg().catch(() => {});
       return true;
-    }, 'Carregant els teus favorits…');
+    }, t('load.favs'));
     if (!ok) return;
   }
   const box = el('div', { class: 'home' }); wrap.append(box);
@@ -980,9 +986,9 @@ async function vFavs(main) {
     const g = el('div', { class: 'chgrid' });
     S.cat.live.items.filter(c => chIds.includes(String(c.id))).forEach(c => g.append(chCard(c)));
     box.append(el('div', { class: 'hrow' },
-      el('div', { class: 'hhead' }, el('span', { class: 'sec', text: 'CANALS' })), g));
+      el('div', { class: 'hhead' }, el('span', { class: 'sec', text: t('favs.channels') })), g));
   }
-  [['series', 'SÈRIES'], ['vod', 'PEL·LÍCULES']].forEach(([k, label]) => {
+  [['series', t('favs.series')], ['vod', t('favs.vod')]].forEach(([k, label]) => {
     const ids = Object.keys(favOf(k));
     if (!ids.length || !S.cat[k]) return;
     any = true;
@@ -991,30 +997,29 @@ async function vFavs(main) {
     box.append(el('div', { class: 'hrow' },
       el('div', { class: 'hhead' }, el('span', { class: 'sec', text: label })), g));
   });
-  if (!any) box.append(el('div', { class: 'empty',
-    text: "Encara no tens res marcat. Toca l'estrella a qualsevol canal, pel·lícula o sèrie." }));
+  if (!any) box.append(el('div', { class: 'empty', text: t('favs.empty') }));
 }
 
 // — Cerca —
 function doSearch(q) {
   S.query = (q || '').trim();
-  if (S.query.length < 2) { toast('Escriu almenys dues lletres.'); return; }
+  if (S.query.length < 2) { toast(t('search.short')); return; }
   go('search');
 }
 async function vSearch(main) {
-  header(main, 'Cerca', `«${S.query}»`, []);
+  header(main, t('search.title'), `«${S.query}»`, []);
   const wrap = el('div', { class: 'scroll' }); main.append(wrap);
   const ok = await guard(main, async () => {
     for (const k of ['live', 'vod', 'series']) await ensureCatalog(k);
     return true;
-  }, 'Buscant a tot el catàleg…');
+  }, t('load.search'));
   if (!ok) return;
 
   const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const q = norm(S.query);
   const box = el('div', { class: 'home' }); wrap.append(box);
   let total = 0;
-  [['live', 'CANALS'], ['series', 'SÈRIES'], ['vod', 'PEL·LÍCULES']].forEach(([k, label]) => {
+  [['live', t('favs.channels')], ['series', t('favs.series')], ['vod', t('favs.vod')]].forEach(([k, label]) => {
     const hits = S.cat[k].items.filter(x => norm(x.n).includes(q)).slice(0, 48);
     if (!hits.length) return;
     total += hits.length;
@@ -1023,9 +1028,9 @@ async function vSearch(main) {
     box.append(el('div', { class: 'hrow' },
       el('div', { class: 'hhead' },
         el('span', { class: 'sec', text: label }),
-        el('span', { style: 'font-size:11.5px;color:var(--ink4)', text: `${hits.length} resultats` })), g));
+        el('span', { style: 'font-size:11.5px;color:var(--ink4)', text: t('search.n', hits.length) })), g));
   });
-  if (!total) box.append(el('div', { class: 'empty', text: `Cap resultat per a «${S.query}».` }));
+  if (!total) box.append(el('div', { class: 'empty', text: t('search.empty', S.query) }));
 }
 
 // — Configuració —
@@ -1036,45 +1041,52 @@ function vConfig(main, first) {
 
   const art = el('div', { class: 'cfg-art' },
     el('h1', { text: 'IPTBe' }),
-    el('p', { text: "Entra i gaudeix dels teus canals d'IPTV." }),
+    el('p', { text: t('cfg.tagline') }),
     el('div', { class: 'rule', style: 'max-width:340px' }),
     el('div', { class: 'cfg-list' },
-      row2('tv', 'Guia de programació en directe'),
-      row2('star', 'Favorits i historial, teus i locals'),
-      row2('out', 'Reproducció al VLC amb un clic')));
+      row2('tv', t('cfg.f1')),
+      row2('star', t('cfg.f2')),
+      row2('out', t('cfg.f3'))),
+    // El primer cop no hi ha barra lateral: sense això no hi hauria manera de canviar
+    // d'idioma abans d'entrar. La resta de vegades ja el tens al peu del menú.
+    first ? el('div', { class: 'cfg-lang' }, langPicker()) : null);
   function row2(i, t) { const d = el('div'); d.append(svg(i, 17), el('span', { text: t })); return d; }
 
   const e = S.status || {};
-  const fServer = field('srv', 'SERVIDOR', 'https://el-teu-servidor.com:8443', e.server || '');
-  const fUser = field('user', 'USUARI', 'el teu usuari', e.user || '');
-  const fPass = field('lock', 'CONTRASENYA', 'la teva contrasenya', '', 'password');
+  const fServer = field('srv', t('cfg.server'), t('cfg.ph.server'), e.server || '');
+  const fUser = field('user', t('cfg.user'), t('cfg.ph.user'), e.user || '');
+  const fPass = field('lock', t('cfg.pass'), t('cfg.ph.pass'), '', 'password');
   const result = el('div');
 
   const testBtn = el('button', { class: 'btn btn-s' });
-  testBtn.append(svg('refr', 15), 'Provar connexió');
+  testBtn.append(svg('refr', 15), t('cfg.test'));
   const saveBtn = el('button', { class: 'btn btn-p', style: 'margin-left:auto' });
-  saveBtn.append('Desar i entrar', svg('right', 15));
+  saveBtn.append(t('cfg.save'), svg('right', 15));
 
   async function test() {
     result.textContent = '';
     const body = { server: fServer.value(), user: fUser.value(), pass: fPass.value() };
     if (!body.server || !body.user || !body.pass) {
-      return result.append(note(false, 'Falten dades', 'Omple els tres camps abans de provar.'));
+      return result.append(note(false, t('cfg.missing.t'), t('cfg.missing.b')));
     }
     testBtn.disabled = saveBtn.disabled = true;
-    const old = testBtn.textContent; testBtn.textContent = 'Provant…';
+    const old = testBtn.textContent; testBtn.textContent = t('cfg.testing');
     try {
       const r = await api('/api/test', { method: 'POST', body, timeout: 30000 });
-      result.append(note(true, 'Connexió correcta',
-        `Compte ${r.status || 'actiu'}${r.expires ? ` fins al ${r.expires}` : ''}. ` +
-        `${r.max_connections} ${r.max_connections === '1' ? 'connexió simultània' : 'connexions simultànies'}` +
-        (r.max_connections === '1' ? ' — no podràs veure dues coses alhora.' : '.')));
+      // El servidor envia la caducitat com a epoch: així la data es formata en l'idioma triat.
+      const fins = r.expires
+        ? t('cfg.acct.until', new Date(r.expires * 1000).toLocaleDateString(locale()))
+        : '';
+      result.append(note(true, t('cfg.ok.t'),
+        t('cfg.acct', r.status || t('cfg.acct.active')) + fins + '. ' +
+        t('cfg.conns', r.max_connections) +
+        (r.max_connections === '1' ? t('cfg.conns.one') : '.')));
       return true;
     } catch (err) {
-      result.append(note(false, ERR_TITLE[err.kind] || 'No ha funcionat',
-        err.msg + (ERR_HELP[err.kind] ? ' ' + ERR_HELP[err.kind] : '')));
+      result.append(note(false, errTitle(err.kind),
+        err.msg + (errHelp(err.kind) ? ' ' + errHelp(err.kind) : '')));
       return false;
-    } finally { testBtn.disabled = saveBtn.disabled = false; testBtn.textContent = ''; testBtn.append(svg('refr', 15), 'Provar connexió'); }
+    } finally { testBtn.disabled = saveBtn.disabled = false; testBtn.textContent = ''; testBtn.append(svg('refr', 15), t('cfg.test')); }
   }
   testBtn.onclick = test;
   saveBtn.onclick = async () => {
@@ -1085,16 +1097,16 @@ function vConfig(main, first) {
         body: { server: fServer.value(), user: fUser.value(), pass: fPass.value() } });
       S.cat = {}; S.epg = null;
       S.status = await api('/api/status');
-      toast('Credencials desades');
+      toast(t('cfg.saved'));
       go('home');
-    } catch (err) { result.append(note(false, 'No he pogut desar', err.msg)); saveBtn.disabled = false; }
+    } catch (err) { result.append(note(false, t('cfg.savefail'), err.msg)); saveBtn.disabled = false; }
   };
 
   wrap.append(art, el('div', { class: 'cfg-form' },
     el('div', { class: 'cfg-box' },
-      el('h2', { text: first ? 'Comencem' : 'Configuració' }),
+      el('h2', { text: t(first ? 'cfg.start' : 'nav.config') }),
       el('p', { style: 'margin:0;font-size:14px;line-height:1.55;color:var(--ink2)',
-        text: 'Enganxa les dades del teu proveïdor. Es desaran només en aquest ordinador.' }),
+        text: t('cfg.intro') }),
       fServer.node, fUser.node, fPass.node,
       el('div', { style: 'display:flex;align-items:center;gap:10px' }, testBtn, saveBtn),
       result)));
@@ -1120,7 +1132,7 @@ function vConfig(main, first) {
 let pingT = null;
 async function boot() {
   const app = $('#app');
-  const spin = loadingPane(app, 'Arrencant IPTBe…');
+  const spin = loadingPane(app, t('load.boot'));
   try {
     S.status = await api('/api/status', { timeout: 10000 });
     const p = await api('/api/prefs', { timeout: 10000 }).catch(() => null);
@@ -1131,7 +1143,7 @@ async function boot() {
     S.now = S.status.now?.label ? S.status.now : null;
     spin.done();
     if (!S.status.vlc)
-      toast("No trobo el VLC a /Applications. Podràs navegar, però no reproduir.", true);
+      toast(t('vlc.boot'), true);
     if (!S.status.configured) { S.view = 'config'; vConfig(null, true); }
     else go('home');
   } catch (e) {
