@@ -29,8 +29,8 @@ ca: {
   'nav.quit.title': 'Atura el servidor local',
   'search.all': 'Cerca a tot el catàleg',
   'search.aria': 'Cerca',
-  'side.fresh.today': 'Dades actualitzades avui',
-  'side.fresh.days': n => `Dades de fa ${n} ${n === 1 ? 'dia' : 'dies'}`,
+  'data.fresh.today': 'Dades actualitzades avui',
+  'data.fresh.days': n => `Dades de fa ${n} ${n === 1 ? 'dia' : 'dies'}`,
   'lang.label': 'Idioma',
 
   // Barra de reproducció
@@ -242,8 +242,8 @@ es: {
   'nav.quit.title': 'Para el servidor local',
   'search.all': 'Busca en todo el catálogo',
   'search.aria': 'Busca',
-  'side.fresh.today': 'Datos actualizados hoy',
-  'side.fresh.days': n => `Datos de hace ${n} ${n === 1 ? 'día' : 'días'}`,
+  'data.fresh.today': 'Datos actualizados hoy',
+  'data.fresh.days': n => `Datos de hace ${n} ${n === 1 ? 'día' : 'días'}`,
   'lang.label': 'Idioma',
 
   'now.live': 'EN DIRECTO',

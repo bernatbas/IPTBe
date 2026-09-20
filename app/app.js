@@ -410,14 +410,6 @@ function shell() {
   const bq = el('button', { class: 'nv', onclick: quitApp, title: t('nav.quit.title') });
   bq.append(svg('power', 17), el('span', { text: t('nav.quit') }));
   foot.append(langPicker(), bc, bq);
-  const at = S.cat.live?.at;
-  if (at) {
-    const days = Math.floor((Date.now() / 1000 - at) / 86400);
-    const m = el('div', { class: 'side-meta' });
-    m.append(svg('refr', 14), el('span', {
-      text: days <= 0 ? t('side.fresh.today') : t('side.fresh.days', days) }));
-    foot.append(m);
-  }
   side.append(foot);
 
   const main = el('main', { class: 'main', id: 'main' });
@@ -451,8 +443,18 @@ function header(main, title, sub, tools = []) {
   main.append(h);
   return h;
 }
+// Quan es van baixar les dades d'una secció. Va al tooltip del botó d'actualitzar i no
+// al menú: així la informació és al costat del botó que la resol, i el peu del menú no
+// canvia d'alçada segons si el catàleg ja s'ha carregat o no.
+function freshness(kind) {
+  const at = S.cat[kind]?.at;
+  if (!at) return null;
+  const dies = Math.floor((Date.now() / 1000 - at) / 86400);
+  return dies <= 0 ? t('data.fresh.today') : t('data.fresh.days', dies);
+}
+
 function refreshChip(kind) {
-  const b = el('button', { class: 'chip', onclick: async () => {
+  const b = el('button', { class: 'chip', title: freshness(kind), onclick: async () => {
     b.disabled = true; b.textContent = t('act.refreshing');
     try {
       if (kind === 'live') { await ensureCatalog('live', true); await ensureEpg(true); }
