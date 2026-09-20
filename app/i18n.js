@@ -428,15 +428,13 @@ es: {
 
 // ─────────────────────────────── maquinària ───────────────────────────────
 
-// L'idioma del navegador mana el primer cop. 'ca-ES' i 'ca' valen igual: només
-// mirem la part de davant del guionet.
+// L'idioma del navegador mana el primer cop. Mirem NOMÉS el principal: si el navegador
+// està en anglès, encara que tingui el castellà com a segona opció a la llista, obrim en
+// català. 'ca-ES' i 'ca' valen igual: ens quedem amb la part de davant del guionet.
 function detectLang() {
-  const tags = navigator.languages?.length ? navigator.languages : [navigator.language || ''];
-  for (const tag of tags) {
-    const base = String(tag).toLowerCase().split('-')[0];
-    if (LANGS[base]) return base;
-  }
-  return 'ca';
+  const principal = navigator.languages?.[0] || navigator.language || '';
+  const base = String(principal).toLowerCase().split('-')[0];
+  return LANGS[base] ? base : 'ca';
 }
 
 const LANG_KEY = 'iptbe.lang';

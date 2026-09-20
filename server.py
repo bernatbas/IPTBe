@@ -319,6 +319,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def log_message(self, *a): pass
 
+    def end_headers(self):
+        # Els fitxers de l'app (index.html, app.js, i18n.js, app.css) no s'han de guardar
+        # a la memòria cau del navegador: si no, després d'actualitzar el codi segueixes
+        # veient la versió antiga sense saber per què. Les rutes /api/ ja posen la seva
+        # pròpia capçalera, i per això no les toquem (les imatges volen cache, i molt).
+        if not self.path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-store, must-revalidate")
+        super().end_headers()
+
     def _send(self, obj, code=200):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
