@@ -333,10 +333,19 @@ async function quitApp() {
 // des de zero, no cal ni recarregar la pàgina ni cap sistema reactiu.
 function langPicker() {
   const sel = el('select', { 'aria-label': t('lang.label'),
-    onchange: () => { if (setLang(sel.value)) redraw(); } });
+    // El repintat va al tick següent a posta. Si desmuntem el <select> dins del mateix
+    // event, l'arrenquem del DOM mentre el desplegable natiu encara s'està tancant, i
+    // el navegador es queda en un estat on el clic següent ja no l'obre.
+    onchange: () => { if (setLang(sel.value)) setTimeout(redraw, 0); } });
   for (const [codi, info] of Object.entries(LANGS))
     sel.append(el('option', { value: codi, selected: codi === lang() }, info.nom));
-  return el('div', { class: 'langpick' }, svg('globe', 16), sel, svg('down', 13));
+  // El <select> va transparent i ocupant tota la caixa: així el globus, el text i la
+  // fletxa obren el desplegable igual que si cliquessis el camp.
+  return el('div', { class: 'langpick' },
+    svg('globe', 16),
+    el('span', { class: 'langpick-txt', text: LANGS[lang()].nom }),
+    svg('down', 13),
+    sel);
 }
 
 // La pantalla de credencials del primer cop no té barra lateral, així que es repinta
