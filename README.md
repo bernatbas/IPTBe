@@ -141,11 +141,11 @@ server.py          servidor local: proveïdor, memòria cau, traspàs al VLC
 app/index.html     esquelet
 app/app.js         tota la interfície
 app/app.css        estils
-app/i18n.js        textos en català i castellà
+app/i18n.js        textos en cinc idiomes
 cache/             dades descarregades (generat, ignorat)
 ```
 
-Uns 2.000 línies en total. Sense build, sense empaquetador, sense dependències: edites un
+Unes 3.100 línies en total. Sense build, sense empaquetador, sense dependències: edites un
 fitxer, recarregues el navegador i ja ho veus.
 
 IPTBe parla amb el proveïdor pel protocol **Xtream Codes** (`player_api.php` per al
