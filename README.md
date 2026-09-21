@@ -91,10 +91,10 @@ Qualsevol de les tres, totes deixen l'ordinador net:
   Les sèries surten agrupades per temporada i episodi.
 - **Cerca** general i dins de cada secció, insensible a majúscules i accents.
 - **Favorits** i seguiment d'episodis vistos, desats al teu ordinador.
-- **Català i castellà**: el primer cop agafa l'idioma del teu navegador; si no és cap
-  dels dos, es queda en català. El pots canviar quan vulguis des del menú lateral.
-  Es tradueix la interfície: els noms dels canals i els títols venen del proveïdor i
-  arriben tal com ell els envia.
+- **Cinc idiomes**: català, castellà, gallec, basc i anglès. El primer cop agafa l'idioma
+  principal del teu navegador; si no és cap dels cinc, es queda en català. El pots canviar
+  quan vulguis des del menú lateral. Es tradueix la interfície: els noms dels canals i els
+  títols venen del proveïdor i arriben tal com ell els envia, en castellà.
 
 ---
 
