@@ -447,17 +447,24 @@ function header(main, title, sub, tools = []) {
 // al menú: així la informació és al costat del botó que la resol, i el peu del menú no
 // canvia d'alçada segons si el catàleg ja s'ha carregat o no.
 function freshness(kind) {
+  if (kind === 'all') return null;          // no hi ha una sola data per als tres catàlegs
   const at = S.cat[kind]?.at;
   if (!at) return null;
   const dies = Math.floor((Date.now() / 1000 - at) / 86400);
   return dies <= 0 ? t('data.fresh.today') : t('data.fresh.days', dies);
 }
 
+// kind pot ser 'live' | 'vod' | 'series' | 'all'. 'all' és per a la cerca, que mira els
+// tres catàlegs alhora: refrescar-ne només un seria mentir sobre què s'ha actualitzat.
 function refreshChip(kind) {
   const b = el('button', { class: 'chip', title: freshness(kind), onclick: async () => {
     b.disabled = true; b.textContent = t('act.refreshing');
     try {
-      if (kind === 'live') { await ensureCatalog('live', true); await ensureEpg(true); }
+      if (kind === 'all') {
+        for (const k of ['live', 'vod', 'series']) await ensureCatalog(k, true);
+        await ensureEpg(true);
+      }
+      else if (kind === 'live') { await ensureCatalog('live', true); await ensureEpg(true); }
       else await ensureCatalog(kind, true);
       toast(t('toast.refreshed')); go(S.view);
     } catch (e) { toast(e.msg, true); b.disabled = false; b.textContent = ''; b.append(svg('refr', 14), t('act.refresh')); }
@@ -1015,10 +1022,12 @@ async function vFavs(main) {
 function doSearch(q) {
   S.query = (q || '').trim();
   if (S.query.length < 2) { toast(t('search.short')); return; }
+  // Una cerca nova arrenca sense l'expansió de l'anterior.
+  for (const k of ['live', 'vod', 'series']) delete S.page['search:' + k];
   go('search');
 }
 async function vSearch(main) {
-  header(main, t('search.title'), `«${S.query}»`, []);
+  header(main, t('search.title'), `«${S.query}»`, [refreshChip('all')]);
   const wrap = el('div', { class: 'scroll' }); main.append(wrap);
   const ok = await guard(main, async () => {
     for (const k of ['live', 'vod', 'series']) await ensureCatalog(k);
@@ -1031,15 +1040,20 @@ async function vSearch(main) {
   const box = el('div', { class: 'home' }); wrap.append(box);
   let total = 0;
   [['live', t('favs.channels')], ['series', t('favs.series')], ['vod', t('favs.vod')]].forEach(([k, label]) => {
-    const hits = S.cat[k].items.filter(x => norm(x.n).includes(q)).slice(0, 48);
+    // Sense retallar: el comptador ha de dir quants n'hi ha de debò, i la resta
+    // s'arriba amb el mateix botó «Carrega'n més» que la resta de l'app.
+    const hits = S.cat[k].items.filter(x => norm(x.n).includes(q));
     if (!hits.length) return;
     total += hits.length;
     const g = k === 'live' ? el('div', { class: 'chgrid' }) : el('div', { class: 'grid', style: 'padding:0' });
-    hits.forEach(x => g.append(k === 'live' ? chCard(x) : poster(x, k)));
-    box.append(el('div', { class: 'hrow' },
+    const row = el('div', { class: 'hrow' },
       el('div', { class: 'hhead' },
         el('span', { class: 'sec', text: label }),
-        el('span', { style: 'font-size:11.5px;color:var(--ink4)', text: t('search.n', hits.length) })), g));
+        el('span', { style: 'font-size:11.5px;color:var(--ink4)', text: t('search.n', hits.length) })), g);
+    box.append(row);
+    paged(g, hits, 24, 'search:' + k,
+          x => k === 'live' ? chCard(x) : poster(x, k),
+          () => go('search'));
   });
   if (!total) box.append(el('div', { class: 'empty', text: t('search.empty', S.query) }));
 }

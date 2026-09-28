@@ -210,7 +210,7 @@ ca: {
   // Cerca
   'search.title': 'Cerca',
   'search.short': 'Escriu almenys dues lletres.',
-  'search.n': n => `${n} resultats`,
+  'search.n': n => `${n} ${n === 1 ? 'resultat' : 'resultats'}`,
   'search.empty': q => `Cap resultat per a «${q}».`,
 
   // Configuració
@@ -405,7 +405,7 @@ en: {
 
   'search.title': 'Search',
   'search.short': 'Type at least two letters.',
-  'search.n': n => `${n} results`,
+  'search.n': n => `${n} ${n === 1 ? 'result' : 'results'}`,
   'search.empty': q => `No results for “${q}”.`,
 
   'cfg.tagline': 'Sign in and enjoy your IPTV channels.',
@@ -599,7 +599,7 @@ es: {
 
   'search.title': 'Búsqueda',
   'search.short': 'Escribe al menos dos letras.',
-  'search.n': n => `${n} resultados`,
+  'search.n': n => `${n} ${n === 1 ? 'resultado' : 'resultados'}`,
   'search.empty': q => `Ningún resultado para «${q}».`,
 
   'cfg.tagline': 'Entra y disfruta de tus canales de IPTV.',
@@ -988,7 +988,7 @@ gl: {
 
   'search.title': 'Busca',
   'search.short': 'Escribe polo menos dúas letras.',
-  'search.n': n => `${n} resultados`,
+  'search.n': n => `${n} ${n === 1 ? 'resultado' : 'resultados'}`,
   'search.empty': q => `Ningún resultado para «${q}».`,
 
   'cfg.tagline': 'Entra e goza das túas canles de IPTV.',
