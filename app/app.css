@@ -189,6 +189,11 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
   white-space:nowrap}
 .chcard .pt{font-size:14.5px;font-weight:500;line-height:1.25;height:36px;overflow:hidden}
 .chcard .nx{font-size:11.5px;color:var(--ink3);border-top:1px solid var(--rule2);padding-top:8px}
+/* Avís sota la secció d'esports: on mirar quan el partit no és als canals amb guia. */
+.hint{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12.5px;
+  line-height:1.6;color:var(--ink3);padding-top:2px}
+.hint span{max-width:72ch}
+
 .controw{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
 .contcard{display:flex;gap:12px;background:var(--surface);border:1px solid var(--rule);
   border-radius:4px;padding:12px;text-align:left}

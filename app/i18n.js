@@ -157,6 +157,9 @@ ca: {
   'home.added.today': 'afegides avui',
   'home.added.on': d => `afegides el ${d}`,
   'home.serie': 'Sèrie',
+  'home.sports.more': 'No hi trobes el teu partit? Molts van a canals sense graella de programació.',
+  'home.sports.none': 'Ara mateix no hi ha cap partit en joc als canals amb graella. Si en busques un en concret, pot ser en un canal sense programació.',
+  'home.sports.guide': 'Veure la graella',
 
   // TV en directe
   'live.search': 'Cerca un canal',
@@ -361,6 +364,9 @@ en: {
   'home.added.today': 'added today',
   'home.added.on': d => `added on ${d}`,
   'home.serie': 'Series',
+  'home.sports.more': 'Can\u2019t find your match? Many end up on channels with no programme guide.',
+  'home.sports.none': 'No matches are in play on the channels that have a guide. If you are after a specific one, it may be on a channel with no listings.',
+  'home.sports.guide': 'See the grid',
 
   'live.search': 'Search for a channel',
   'live.cats': n => `CATEGORIES · ${n}`,
@@ -558,6 +564,9 @@ es: {
   'home.added.today': 'añadidas hoy',
   'home.added.on': d => `añadidas el ${d}`,
   'home.serie': 'Serie',
+  'home.sports.more': '¿No encuentras tu partido? Muchos van a canales sin guía de programación.',
+  'home.sports.none': 'Ahora mismo no hay ningún partido en juego en los canales con guía. Si buscas uno en concreto, puede estar en un canal sin programación.',
+  'home.sports.guide': 'Ver la parrilla',
 
   'live.search': 'Busca un canal',
   'live.cats': n => `CATEGORÍAS · ${n}`,
@@ -757,6 +766,9 @@ eu: {
   'home.added.today': 'gaur gehituak',
   'home.added.on': d => `${d}(e)an gehituak`,
   'home.serie': 'Telesaila',
+  'home.sports.more': 'Ez duzu zure partida aurkitzen? Asko programazio-gidarik gabeko kateetara doaz.',
+  'home.sports.none': 'Orain ez dago partidarik jokoan gida duten kateetan. Zehatz bat bilatzen ari bazara, programaziorik gabeko kate batean egon daiteke.',
+  'home.sports.guide': 'Ikusi parrila',
 
   'live.search': 'Bilatu kate bat',
   'live.cats': n => `KATEGORIAK · ${n}`,
@@ -953,6 +965,9 @@ gl: {
   'home.added.today': 'engadidas hoxe',
   'home.added.on': d => `engadidas o ${d}`,
   'home.serie': 'Serie',
+  'home.sports.more': 'Non atopas o teu partido? Moitos van a canles sen guía de programación.',
+  'home.sports.none': 'Agora mesmo non hai ningún partido en xogo nas canles con guía. Se buscas un en concreto, pode estar nunha canle sen programación.',
+  'home.sports.guide': 'Ver a grella',
 
   'live.search': 'Busca unha canle',
   'live.cats': n => `CATEGORÍAS · ${n}`,

@@ -494,16 +494,32 @@ async function vHome(main) {
 
   const box = el('div', { class: 'home' }); scroll.append(box);
 
-  // Esports en directe. Si no hi ha cap partit, la secció no existeix.
+  // Esports en directe. El proveïdor només envia guia d'algunes categories: la resta de
+  // partits van a parar al grup «Eventos», que no en té gens, i l'única graella d'aquell
+  // grup està dibuixada dins del vídeo del seu primer canal. Per això la secció existeix
+  // encara que no hi hagi cap partit amb guia: quan no n'hi ha és quan més falta fa dir
+  // on més es pot mirar.
   const sports = sportsNow(6);
-  if (sports.length) {
-    const sg = el('div', { class: 'chgrid' });
-    sports.forEach(c => sg.append(chCard(c)));
-    box.append(el('div', { class: 'hrow' },
-      el('div', { class: 'hhead' },
-        el('span', { class: 'sec live', text: t('home.sports') }),
-        el('span', { style: 'font-size:11.5px;color:var(--ink4)',
-          text: t('home.sports.n', sports.length) })), sg));
+  const graella = eventsGuideChannel();
+  if (sports.length || graella) {
+    const fila = el('div', { class: 'hrow' });
+    const cap = el('div', { class: 'hhead' },
+      el('span', { class: 'sec' + (sports.length ? ' live' : ''), text: t('home.sports') }));
+    if (sports.length) cap.append(el('span', { style: 'font-size:11.5px;color:var(--ink4)',
+      text: t('home.sports.n', sports.length) }));
+    fila.append(cap);
+    if (sports.length) {
+      const sg = el('div', { class: 'chgrid' });
+      sports.forEach(c => sg.append(chCard(c)));
+      fila.append(sg);
+    }
+    if (graella) {
+      const b = el('button', { class: 'chip', onclick: () => play('live', graella.id, graella.n) });
+      b.append(svg('tv', 14), t('home.sports.guide'));
+      fila.append(el('div', { class: 'hint' },
+        el('span', { text: t(sports.length ? 'home.sports.more' : 'home.sports.none') }), b));
+    }
+    box.append(fila);
   }
 
   // Continuar veient
@@ -589,6 +605,13 @@ const ADULT = /\bXXX\b|ADULTO|\+\s?18|PORN|ER[OÓ]TIC/i;
 function safeItems(kind) {
   const blocked = new Set(S.cat[kind].cats.filter(c => ADULT.test(c.n)).map(c => c.id));
   return S.cat[kind].items.filter(x => !blocked.has(x.c));
+}
+
+// El proveïdor aboca els partits sense guia a un grup «Eventos» i només publica què hi
+// emeten dins del vídeo del primer canal del grup. No és cap estàndard, és com ho fa
+// aquest proveïdor: si un dia el canal no hi és, l'avís no surt i prou.
+function eventsGuideChannel() {
+  return S.cat.live?.items.find(c => /^dazn\s+eventos\s+0?1$/i.test((c.n || '').trim())) || null;
 }
 
 function sportsNow(limit = 6) {
