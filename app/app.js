@@ -515,7 +515,7 @@ async function vHome(main) {
     }
     if (graella) {
       const b = el('button', { class: 'chip', onclick: () => play('live', graella.id, graella.n) });
-      b.append(svg('tv', 14), t('home.sports.guide'));
+      b.append(svg('play', 13, 1.6, 'currentColor'), t('home.sports.guide'));
       fila.append(el('div', { class: 'hint' },
         el('span', { text: t(sports.length ? 'home.sports.more' : 'home.sports.none') }), b));
     }
