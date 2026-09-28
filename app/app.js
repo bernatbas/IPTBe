@@ -862,7 +862,13 @@ function pager(host, total, size, key, redraw) {
   };
 
   nav.append(fletxa('left', cur - 1, t('page.prev')));
-  const vol = [...new Set([0, cur - 1, cur, cur + 1, pages - 1])]
+  // Finestra de 5 números consecutius que llisca amb tu, més sempre la primera i l'última.
+  // Així a prop d'un extrem no es desaprofiten llocs (amb 5 pàgines surten totes cinc) i al
+  // mig d'una llista llarga tens sempre el mateix nombre de destins a mà.
+  const FINESTRA = 5;
+  const ini = Math.max(0, Math.min(cur - Math.floor(FINESTRA / 2), pages - FINESTRA));
+  const fi  = Math.min(pages - 1, ini + FINESTRA - 1);
+  const vol = [...new Set([0, ...Array.from({ length: fi - ini + 1 }, (_, i) => ini + i), pages - 1])]
     .filter(i => i >= 0 && i < pages).sort((a, b) => a - b);
   vol.forEach((i, k) => {
     if (k && i > vol[k - 1] + 1) nav.append(el('span', { class: 'gap', text: '…' }));
