@@ -211,6 +211,9 @@ ca: {
   'search.title': 'Cerca',
   'search.short': 'Escriu almenys dues lletres.',
   'search.n': n => `${n} ${n === 1 ? 'resultat' : 'resultats'}`,
+  'page.prev': 'Pàgina anterior',
+  'page.next': 'Pàgina següent',
+  'page.n': n => `Pàgina ${n}`,
   'search.empty': q => `Cap resultat per a «${q}».`,
 
   // Configuració
@@ -406,6 +409,9 @@ en: {
   'search.title': 'Search',
   'search.short': 'Type at least two letters.',
   'search.n': n => `${n} ${n === 1 ? 'result' : 'results'}`,
+  'page.prev': 'Previous page',
+  'page.next': 'Next page',
+  'page.n': n => `Page ${n}`,
   'search.empty': q => `No results for “${q}”.`,
 
   'cfg.tagline': 'Sign in and enjoy your IPTV channels.',
@@ -600,6 +606,9 @@ es: {
   'search.title': 'Búsqueda',
   'search.short': 'Escribe al menos dos letras.',
   'search.n': n => `${n} ${n === 1 ? 'resultado' : 'resultados'}`,
+  'page.prev': 'Página anterior',
+  'page.next': 'Página siguiente',
+  'page.n': n => `Página ${n}`,
   'search.empty': q => `Ningún resultado para «${q}».`,
 
   'cfg.tagline': 'Entra y disfruta de tus canales de IPTV.',
@@ -796,6 +805,9 @@ eu: {
   'search.title': 'Bilaketa',
   'search.short': 'Idatzi gutxienez bi letra.',
   'search.n': n => `${n} emaitza`,
+  'page.prev': 'Aurreko orria',
+  'page.next': 'Hurrengo orria',
+  'page.n': n => `${n}. orria`,
   'search.empty': q => `Ez dago emaitzarik «${q}» bilaketarako.`,
 
   'cfg.tagline': 'Sartu eta gozatu zure IPTV kateez.',
@@ -989,6 +1001,9 @@ gl: {
   'search.title': 'Busca',
   'search.short': 'Escribe polo menos dúas letras.',
   'search.n': n => `${n} ${n === 1 ? 'resultado' : 'resultados'}`,
+  'page.prev': 'Páxina anterior',
+  'page.next': 'Páxina seguinte',
+  'page.n': n => `Páxina ${n}`,
   'search.empty': q => `Ningún resultado para «${q}».`,
 
   'cfg.tagline': 'Entra e goza das túas canles de IPTV.',

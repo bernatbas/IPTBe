@@ -834,6 +834,46 @@ function poster(it, kind) {
   return card;
 }
 
+// Paginador numerat. Només a la cerca: allà busques una cosa concreta i saber quantes
+// pàgines hi ha t'ajuda a decidir si afines la consulta. A TV i a les graelles es manté el
+// «Carrega'n més», que encaixa amb remenar. Una cerca genèrica pot donar 160 pàgines, així
+// que ensenyem la primera, l'última, l'actual i les veïnes, amb punts suspensius al mig.
+function pager(host, total, size, key, redraw) {
+  const pages = Math.ceil(total / size);
+  if (pages <= 1) return;
+  const cur = S.page[key] || 0;
+  const nav = el('nav', { class: 'pager' });
+
+  const anar = i => {
+    S.page[key] = i;
+    redraw();
+    // Després de repintar, tornar al capdamunt de la secció: si no, et quedes a mitja
+    // pàgina mirant uns resultats que ja no són els que havies demanat.
+    requestAnimationFrame(() =>
+      document.querySelector(`[data-pagekey="${key}"]`)
+        ?.scrollIntoView({ block: 'start', behavior: 'instant' }));
+  };
+
+  const fletxa = (icona, dest, etiqueta) => {
+    const b = el('button', { 'aria-label': etiqueta, title: etiqueta,
+      disabled: dest < 0 || dest >= pages, onclick: () => anar(dest) });
+    b.append(svg(icona, 14));
+    return b;
+  };
+
+  nav.append(fletxa('left', cur - 1, t('page.prev')));
+  const vol = [...new Set([0, cur - 1, cur, cur + 1, pages - 1])]
+    .filter(i => i >= 0 && i < pages).sort((a, b) => a - b);
+  vol.forEach((i, k) => {
+    if (k && i > vol[k - 1] + 1) nav.append(el('span', { class: 'gap', text: '…' }));
+    nav.append(el('button', { class: i === cur ? 'on' : '', text: fmt(i + 1),
+      'aria-label': t('page.n', i + 1), 'aria-current': i === cur ? 'page' : false,
+      onclick: () => anar(i) }));
+  });
+  nav.append(fletxa('right', cur + 1, t('page.next')));
+  host.append(nav);
+}
+
 function paged(host, list, size, key, make, redraw) {
   const n = (S.page[key] || 0) + 1;
   const slice = list.slice(0, size * n);
@@ -1045,15 +1085,19 @@ async function vSearch(main) {
     const hits = S.cat[k].items.filter(x => norm(x.n).includes(q));
     if (!hits.length) return;
     total += hits.length;
+    const key = 'search:' + k, per = 24;
+    // Si el catàleg s'ha refrescat i ara hi ha menys pàgines, no et quedis en una que ja no existeix.
+    if ((S.page[key] || 0) >= Math.ceil(hits.length / per)) S.page[key] = 0;
+    const p = S.page[key] || 0;
     const g = k === 'live' ? el('div', { class: 'chgrid' }) : el('div', { class: 'grid', style: 'padding:0' });
+    hits.slice(p * per, (p + 1) * per).forEach(x => g.append(k === 'live' ? chCard(x) : poster(x, k)));
     const row = el('div', { class: 'hrow' },
       el('div', { class: 'hhead' },
         el('span', { class: 'sec', text: label }),
         el('span', { style: 'font-size:11.5px;color:var(--ink4)', text: t('search.n', hits.length) })), g);
+    row.dataset.pagekey = key;
     box.append(row);
-    paged(g, hits, 24, 'search:' + k,
-          x => k === 'live' ? chCard(x) : poster(x, k),
-          () => go('search'));
+    pager(row, hits.length, per, key, () => go('search'));
   });
   if (!total) box.append(el('div', { class: 'empty', text: t('search.empty', S.query) }));
 }
