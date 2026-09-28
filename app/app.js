@@ -508,18 +508,50 @@ async function vHome(main) {
     if (sports.length) cap.append(el('span', { style: 'font-size:11.5px;color:var(--ink4)',
       text: t('home.sports.n', sports.length) }));
     fila.append(cap);
+
+    // Gèneres que emeten ARA. Els noms venen del proveïdor («Fútbol», «Ciclismo») i no es
+    // tradueixen, igual que els noms de canal. Si el que tenies triat ja no emet res —
+    // després d'un refresc, per exemple — tornem a ensenyar-ho tot.
+    const gen = new Map();
+    sports.forEach(c => {
+      const g = progOf(c.e)?.now?.g;
+      if (g) gen.set(g, (gen.get(g) || 0) + 1);
+    });
+    if (S.pick.sport && !gen.has(S.pick.sport)) S.pick.sport = null;
+
+    const tabs = el('div', { class: 'sportfilter' });
     const sg = el('div', { class: 'chgrid' });
-    sports.slice(0, 12).forEach(c => sg.append(chCard(c)));
-    // L'avís va com una targeta més, al final: cau justament on has deixat de trobar el
-    // teu partit, i omple el buit que queda quan la darrera fila va curta. Traç
-    // discontinu perquè es vegi d'un cop d'ull que no és un canal.
-    if (graella) {
-      const c = el('button', { class: 'hintcard', onclick: () => play('live', graella.id, graella.n) });
-      c.append(el('b', {}, svg('play', 13, 1.6, 'currentColor'), t('home.sports.guide')),
-               el('span', { text: t(sports.length ? 'home.sports.more' : 'home.sports.none') }));
-      sg.append(c);
+
+    // Repinta xips i targetes a l'instant: filtrar no ha de recarregar la portada sencera.
+    function pinta() {
+      tabs.textContent = '';
+      if (gen.size > 1) {
+        const xip = (etiqueta, n, val) => {
+          const b = el('button', { class: 'chip' + (S.pick.sport === val ? ' on' : ''),
+            onclick: () => { S.pick.sport = val; pinta(); } });
+          b.append(etiqueta, el('span', { class: 'ct', text: fmt(n) }));
+          return b;
+        };
+        tabs.append(xip(t('home.sports.all'), sports.length, null));
+        [...gen.entries()].sort((a, b) => b[1] - a[1])
+          .forEach(([g, n]) => tabs.append(xip(g, n, g)));
+      }
+      sg.textContent = '';
+      const mostra = S.pick.sport
+        ? sports.filter(c => progOf(c.e)?.now?.g === S.pick.sport) : sports;
+      mostra.slice(0, 12).forEach(c => sg.append(chCard(c)));
+      // L'avís va com una targeta més, al final: cau justament on has deixat de trobar el
+      // teu partit, i omple el buit que queda quan la darrera fila va curta. Traç
+      // discontinu perquè es vegi d'un cop d'ull que no és un canal.
+      if (graella) {
+        const c = el('button', { class: 'hintcard', onclick: () => play('live', graella.id, graella.n) });
+        c.append(el('b', {}, svg('play', 13, 1.6, 'currentColor'), t('home.sports.guide')),
+                 el('span', { text: t(sports.length ? 'home.sports.more' : 'home.sports.none') }));
+        sg.append(c);
+      }
     }
-    fila.append(sg);
+    pinta();
+    fila.append(tabs, sg);
     box.append(fila);
   }
 

@@ -160,6 +160,7 @@ ca: {
   'home.sports.more': 'No hi trobes el teu partit? Molts van a canals sense graella de programació.',
   'home.sports.none': 'Ara mateix no hi ha cap partit en joc als canals amb graella. Si en busques un en concret, pot ser en un canal sense programació.',
   'home.sports.guide': 'Programació DAZN',
+  'home.sports.all': 'Tots',
 
   // TV en directe
   'live.search': 'Cerca un canal',
@@ -367,6 +368,7 @@ en: {
   'home.sports.more': 'Can\u2019t find your match? Many end up on channels with no programme guide.',
   'home.sports.none': 'No matches are in play on the channels that have a guide. If you are after a specific one, it may be on a channel with no listings.',
   'home.sports.guide': 'DAZN schedule',
+  'home.sports.all': 'All',
 
   'live.search': 'Search for a channel',
   'live.cats': n => `CATEGORIES · ${n}`,
@@ -567,6 +569,7 @@ es: {
   'home.sports.more': '¿No encuentras tu partido? Muchos van a canales sin guía de programación.',
   'home.sports.none': 'Ahora mismo no hay ningún partido en juego en los canales con guía. Si buscas uno en concreto, puede estar en un canal sin programación.',
   'home.sports.guide': 'Programación DAZN',
+  'home.sports.all': 'Todos',
 
   'live.search': 'Busca un canal',
   'live.cats': n => `CATEGORÍAS · ${n}`,
@@ -769,6 +772,7 @@ eu: {
   'home.sports.more': 'Ez duzu zure partida aurkitzen? Asko programazio-gidarik gabeko kateetara doaz.',
   'home.sports.none': 'Orain ez dago partidarik jokoan gida duten kateetan. Zehatz bat bilatzen ari bazara, programaziorik gabeko kate batean egon daiteke.',
   'home.sports.guide': 'DAZN programazioa',
+  'home.sports.all': 'Denak',
 
   'live.search': 'Bilatu kate bat',
   'live.cats': n => `KATEGORIAK · ${n}`,
@@ -968,6 +972,7 @@ gl: {
   'home.sports.more': 'Non atopas o teu partido? Moitos van a canles sen guía de programación.',
   'home.sports.none': 'Agora mesmo non hai ningún partido en xogo nas canles con guía. Se buscas un en concreto, pode estar nunha canle sen programación.',
   'home.sports.guide': 'Programación DAZN',
+  'home.sports.all': 'Todos',
 
   'live.search': 'Busca unha canle',
   'live.cats': n => `CATEGORÍAS · ${n}`,
