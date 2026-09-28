@@ -182,6 +182,18 @@ def _epoch(s):
     sign = 1 if off[0] == "+" else -1
     return calendar.timegm(t) - sign * (int(off[1:3]) * 3600 + int(off[3:5]) * 60)
 
+# El XMLTV d'aquest proveïdor no porta <category>, però el <desc> comença amb una
+# capçalera amb barres:  « | ★★★☆☆ | +TP | 2026 | Programa deportes. \nArgumento: … »
+# L'últim tros abans del text lliure és el gènere, i és el que distingeix un partit
+# («Fútbol», «Ciclismo») d'un programa que en parla («Programa deportes»).
+_GEN_TALL = re.compile(r"\n|Argumento:|Dirección:|Protagonizada:")
+def _genre(desc):
+    if not desc: return ""
+    trossos = [x.strip() for x in _GEN_TALL.split(desc)[0].split("|") if x.strip()]
+    if not trossos: return ""
+    g = trossos[-1].rstrip(". ").strip()
+    return "" if re.fullmatch(r"[\d\s+TPA-]*", g) else g
+
 def epg(refresh=False):
     key = "epg"
     with _lock:
@@ -200,9 +212,11 @@ def epg(refresh=False):
             if not cid: continue
             st, en = _epoch(pr.get("start")), _epoch(pr.get("stop"))
             if st is None or en is None: continue
-            ti = pr.find("title")
+            ti, de = pr.find("title"), pr.find("desc")
             by.setdefault(cid, []).append(
-                {"s": st, "e": en, "t": (ti.text or "").strip() if ti is not None else ""})
+                {"s": st, "e": en,
+                 "t": (ti.text or "").strip() if ti is not None else "",
+                 "g": _genre(de.text if de is not None else "")})
         for v in by.values(): v.sort(key=lambda x: x["s"])
         cached = {"by": by, "at": int(time.time())}
         _save_cache(key, cached)

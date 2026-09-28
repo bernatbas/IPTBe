@@ -499,7 +499,7 @@ async function vHome(main) {
   // grup està dibuixada dins del vídeo del seu primer canal. Per això la secció existeix
   // encara que no hi hagi cap partit amb guia: quan no n'hi ha és quan més falta fa dir
   // on més es pot mirar.
-  const sports = sportsNow(6);
+  const sports = sportsNow();
   const graella = eventsGuideChannel();
   if (sports.length || graella) {
     const fila = el('div', { class: 'hrow' });
@@ -509,7 +509,7 @@ async function vHome(main) {
       text: t('home.sports.n', sports.length) }));
     fila.append(cap);
     const sg = el('div', { class: 'chgrid' });
-    sports.forEach(c => sg.append(chCard(c)));
+    sports.slice(0, 12).forEach(c => sg.append(chCard(c)));
     // L'avís va com una targeta més, al final: cau justament on has deixat de trobar el
     // teu partit, i omple el buit que queda quan la darrera fila va curta. Traç
     // discontinu perquè es vegi d'un cop d'ull que no és un canal.
@@ -594,10 +594,15 @@ const SPORT_CAT = /DEPORTES|F1|FORMULA|MOTO|LIGA|NBA|NFL|NHL|UFC|TENNIS|EVENTOS/
 
 // Un partit de veritat porta els equips al títol ("LALIGA - R. Sociedad - Espanyol").
 // Quan el canal no emet res, el títol és només la marca del canal ("M+ LALIGA 2").
-function isFixture(title) {
-  const txt = (title || '').trim();
+// El títol sol no n'hi ha prou: "Los Otros - Los Otros de Brunete" en té la forma i és un
+// documental. El gènere de la guia ho resol — els partits són "Fútbol", "Ciclismo",
+// "Baloncesto"…, i el que en parla és "Programa deportes".
+const NO_ES_PARTIT = /^(programa|documental|biograf|magac|informativ|entrevista|serie|telerrealidad|tertulia)/i;
+function isFixture(p) {
+  const txt = ((p && p.t) || '').trim();
   if (!txt || !/\S\s*-\s*\S/.test(txt)) return false;  // sense guionet no és un enfrontament
   if (/^disfruta\b/i.test(txt)) return false;            // "Disfruta de DAZN en Movistar Plus"
+  if (p && p.g && NO_ES_PARTIT.test(p.g)) return false;
   return true;
 }
 
@@ -615,15 +620,18 @@ function eventsGuideChannel() {
   return S.cat.live?.items.find(c => /^dazn\s+eventos\s+0?1$/i.test((c.n || '').trim())) || null;
 }
 
-function sportsNow(limit = 6) {
+// Els retorna TOTS: qui crida decideix quants en pinta, però el comptador ha de dir
+// quants n'hi ha de debò. Abans en retornava 6 i la portada deia «6 partits en joc»
+// encara que n'hi hagués tretze.
+function sportsNow() {
   if (!S.epg) return [];
   const sportIds = new Set(S.cat.live.cats.filter(c => SPORT_CAT.test(c.n)).map(c => c.id));
   const out = [];
   for (const c of bestPerChannel(S.cat.live.items.filter(x => sportIds.has(x.c)))) {
     const p = progOf(c.e);
-    if (p?.now && isFixture(p.now.t)) out.push(c);
+    if (p?.now && isFixture(p.now)) out.push(c);
   }
-  return out.slice(0, limit);
+  return out;
 }
 
 function chCard(c) {
