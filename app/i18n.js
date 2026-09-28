@@ -1102,7 +1102,7 @@ const SPORTS = {
   en: {
     'Fútbol': 'Football', 'Fútbol americano': 'American football', 'Baloncesto': 'Basketball',
     'Ciclismo': 'Cycling', 'Tenis': 'Tennis', 'Pádel': 'Padel', 'Golf': 'Golf',
-    'Motor': 'Motorsport', 'Motociclismo': 'Motorcycling', 'Automovilismo': 'Motor racing',
+    'Motor': 'Motorsport', 'Motociclismo': 'Motorcycling', 'Automovilismo': 'Car racing',
     'Fórmula 1': 'Formula 1', 'Atletismo': 'Athletics', 'Boxeo': 'Boxing', 'Rugby': 'Rugby',
     'Béisbol': 'Baseball', 'Balonmano': 'Handball', 'Voleibol': 'Volleyball', 'Hockey': 'Hockey',
     'Natación': 'Swimming', 'Waterpolo': 'Water polo', 'Esquí': 'Skiing', 'Vela': 'Sailing',
