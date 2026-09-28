@@ -517,7 +517,9 @@ async function vHome(main) {
       const g = progOf(c.e)?.now?.g;
       if (g) gen.set(g, (gen.get(g) || 0) + 1);
     });
-    if (S.pick.sport && !gen.has(S.pick.sport)) S.pick.sport = null;
+    // Normalitzem a null: S.pick arrenca buit i «undefined === null» és fals, així que
+    // sense això el xip «Tots» no sortia marcat fins que no en clicaves un altre.
+    if (S.pick.sport === undefined || (S.pick.sport && !gen.has(S.pick.sport))) S.pick.sport = null;
 
     const tabs = el('div', { class: 'sportfilter' });
     const sg = el('div', { class: 'chgrid' });
@@ -534,7 +536,7 @@ async function vHome(main) {
         };
         tabs.append(xip(t('home.sports.all'), sports.length, null));
         [...gen.entries()].sort((a, b) => b[1] - a[1])
-          .forEach(([g, n]) => tabs.append(xip(g, n, g)));
+          .forEach(([g, n]) => tabs.append(xip(sportName(g), n, g)));
       }
       sg.textContent = '';
       const mostra = S.pick.sport
@@ -629,7 +631,7 @@ const SPORT_CAT = /DEPORTES|F1|FORMULA|MOTO|LIGA|NBA|NFL|NHL|UFC|TENNIS|EVENTOS/
 // El títol sol no n'hi ha prou: "Los Otros - Los Otros de Brunete" en té la forma i és un
 // documental. El gènere de la guia ho resol — els partits són "Fútbol", "Ciclismo",
 // "Baloncesto"…, i el que en parla és "Programa deportes".
-const NO_ES_PARTIT = /^(programa|documental|biograf|magac|informativ|entrevista|serie|telerrealidad|tertulia)/i;
+const NO_ES_PARTIT = /^(programa|documental|biograf|magac|informativ|entrevista|serie|telerrealidad|tertulia|televenta|acci[oó]n|b[eé]lico|aventuras|comedia|drama|thriller|terror|western|musical|infantil|dibujos|sin clasificar)/i;
 function isFixture(p) {
   const txt = ((p && p.t) || '').trim();
   if (!txt || !/\S\s*-\s*\S/.test(txt)) return false;  // sense guionet no és un enfrontament

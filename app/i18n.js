@@ -1055,6 +1055,65 @@ gl: {
 
 };
 
+
+// ─────────────────────── noms dels esports ───────────────────────
+// El gènere arriba del proveïdor en castellà. A diferència dels noms de canal o els títols,
+// això és una **etiqueta de categoria** amb traducció òbvia, i barrejar «Tots» amb
+// «Ciclismo» queda estrany. El que no hi sigui s'ensenya tal com arriba: val més un nom en
+// castellà que cap. Si amb el temps n'apareix un de nou, s'afegeix aquí i ja està.
+const SPORTS = {
+  ca: {
+    'Fútbol': 'Futbol', 'Fútbol americano': 'Futbol americà', 'Baloncesto': 'Bàsquet',
+    'Ciclismo': 'Ciclisme', 'Tenis': 'Tennis', 'Pádel': 'Pàdel', 'Golf': 'Golf',
+    'Motor': 'Motor', 'Motociclismo': 'Motociclisme', 'Automovilismo': 'Automobilisme',
+    'Fórmula 1': 'Fórmula 1', 'Atletismo': 'Atletisme', 'Boxeo': 'Boxa', 'Rugby': 'Rugbi',
+    'Béisbol': 'Beisbol', 'Balonmano': 'Handbol', 'Voleibol': 'Voleibol', 'Hockey': 'Hoquei',
+    'Natación': 'Natació', 'Waterpolo': 'Waterpolo', 'Esquí': 'Esquí', 'Vela': 'Vela',
+    'Hípica': 'Hípica', 'Dardos': 'Dards', 'Snooker': 'Snooker', 'Gimnasia': 'Gimnàstica',
+    'Triatlón': 'Triatló', 'Escalada deportiva': 'Escalada esportiva',
+    'Artes marciales mixtas': 'Arts marcials mixtes',
+    'Deportes': 'Esports', 'Deporte': 'Esport', 'Otros deportes': 'Altres esports',
+  },
+  es: {},   // ja arriben en castellà
+  gl: {
+    'Fútbol': 'Fútbol', 'Fútbol americano': 'Fútbol americano', 'Baloncesto': 'Baloncesto',
+    'Ciclismo': 'Ciclismo', 'Tenis': 'Tenis', 'Pádel': 'Pádel', 'Golf': 'Golf',
+    'Motor': 'Motor', 'Motociclismo': 'Motociclismo', 'Automovilismo': 'Automobilismo',
+    'Fórmula 1': 'Fórmula 1', 'Atletismo': 'Atletismo', 'Boxeo': 'Boxeo', 'Rugby': 'Rugby',
+    'Béisbol': 'Béisbol', 'Balonmano': 'Balonmán', 'Voleibol': 'Voleibol', 'Hockey': 'Hóckey',
+    'Natación': 'Natación', 'Waterpolo': 'Waterpolo', 'Esquí': 'Esquí', 'Vela': 'Vela',
+    'Hípica': 'Hípica', 'Dardos': 'Dardos', 'Snooker': 'Snooker', 'Gimnasia': 'Ximnasia',
+    'Triatlón': 'Triatlón', 'Escalada deportiva': 'Escalada deportiva',
+    'Artes marciales mixtas': 'Artes marciais mixtas',
+    'Deportes': 'Deportes', 'Deporte': 'Deporte', 'Otros deportes': 'Outros deportes',
+  },
+  eu: {
+    'Fútbol': 'Futbola', 'Fútbol americano': 'Futbol amerikarra', 'Baloncesto': 'Saskibaloia',
+    'Ciclismo': 'Txirrindularitza', 'Tenis': 'Tenisa', 'Pádel': 'Padela', 'Golf': 'Golfa',
+    'Motor': 'Motorra', 'Motociclismo': 'Motoziklismoa', 'Automovilismo': 'Automobilismoa',
+    'Fórmula 1': 'Formula 1', 'Atletismo': 'Atletismoa', 'Boxeo': 'Boxeoa', 'Rugby': 'Errugbia',
+    'Béisbol': 'Beisbola', 'Balonmano': 'Eskubaloia', 'Voleibol': 'Boleibola', 'Hockey': 'Hockeya',
+    'Natación': 'Igeriketa', 'Waterpolo': 'Waterpoloa', 'Esquí': 'Eskia', 'Vela': 'Bela',
+    'Hípica': 'Hipika', 'Dardos': 'Dardoak', 'Snooker': 'Snookerra', 'Gimnasia': 'Gimnastika',
+    'Triatlón': 'Triatloia', 'Escalada deportiva': 'Eskalada',
+    'Artes marciales mixtas': 'Arte martzial mistoak',
+    'Deportes': 'Kirolak', 'Deporte': 'Kirola', 'Otros deportes': 'Beste kirolak',
+  },
+  en: {
+    'Fútbol': 'Football', 'Fútbol americano': 'American football', 'Baloncesto': 'Basketball',
+    'Ciclismo': 'Cycling', 'Tenis': 'Tennis', 'Pádel': 'Padel', 'Golf': 'Golf',
+    'Motor': 'Motorsport', 'Motociclismo': 'Motorcycling', 'Automovilismo': 'Motor racing',
+    'Fórmula 1': 'Formula 1', 'Atletismo': 'Athletics', 'Boxeo': 'Boxing', 'Rugby': 'Rugby',
+    'Béisbol': 'Baseball', 'Balonmano': 'Handball', 'Voleibol': 'Volleyball', 'Hockey': 'Hockey',
+    'Natación': 'Swimming', 'Waterpolo': 'Water polo', 'Esquí': 'Skiing', 'Vela': 'Sailing',
+    'Hípica': 'Equestrian', 'Dardos': 'Darts', 'Snooker': 'Snooker', 'Gimnasia': 'Gymnastics',
+    'Triatlón': 'Triathlon', 'Escalada deportiva': 'Sport climbing',
+    'Artes marciales mixtas': 'Mixed martial arts',
+    'Deportes': 'Sport', 'Deporte': 'Sport', 'Otros deportes': 'Other sports',
+  },
+};
+const sportName = g => (SPORTS[LANG] && SPORTS[LANG][g]) || g;
+
 // ─────────────────────────────── maquinària ───────────────────────────────
 
 // L'idioma del navegador mana el primer cop. Mirem NOMÉS el principal: si el navegador
